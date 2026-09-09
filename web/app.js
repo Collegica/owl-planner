@@ -209,7 +209,8 @@ function showResult(m) {
   // the two file lines mean something on a disk, not in a tab
   const text = m.console
     .replace(/^  wrote \/work\/budget\.md$/m, '  budget.md is in the next tab; download it from there')
-    .replace(/^  wrote uncategorised\.csv — (.*)$/m, '  not yet categorised: $1 (third tab)');
+    .replace(/^  wrote uncategorised\.csv — (.*)$/m, '  not yet categorised: $1 (third tab)')
+    .replace(/^  wrote ask-your-ai\.md — (.*)$/m, '  for your AI: $1 (fourth tab)');
   $('console').innerHTML = colourConsole(text);
   // an annotated file the engine refused belongs next to the file list, with
   // the rows it named, not only in the headline
@@ -218,6 +219,7 @@ function showResult(m) {
     const notice = $('dropNotice'); notice.hidden = false; notice.className = 'notice bad';
     notice.innerHTML = `<b>${esc(refused[1])} was not applied.</b> Its labels are used only when every row still matches a statement exactly.<pre>${esc(refused[0])}</pre>`;
   }
+  showPack(m.pack);
   $('budget').innerHTML = m.budget ? renderMarkdown(m.budget) : '<p class="empty">No budget was written — see the headline.</p>';
   $('dlBudget').disabled = !m.budget;
   $('dlLedger').disabled = !m.ledger;
@@ -281,9 +283,85 @@ function renderUncategorised(csv) {
 
 function selectPane(name) {
   for (const b of $('outTabs').querySelectorAll('button')) b.setAttribute('aria-selected', String(b.dataset.pane === name));
-  for (const p of ['console', 'budget', 'unc']) $(`pane-${p}`).hidden = p !== name;
+  for (const p of ['console', 'budget', 'unc', 'ask']) $(`pane-${p}`).hidden = p !== name;
 }
 $('outTabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) selectPane(b.dataset.pane); });
+
+// ---------------------------------------------------------------- ask your AI
+// The fourth tab: the pack the engine wrote — names and counts, no money —
+// and the box its answer goes in. Checking and merging happen in the worker,
+// on the same rules_merge.py the CLI uses; the page only carries text between
+// the editor and the worker, and nothing leaves the tab.
+function showPack(pack) {
+  $('pack').textContent = pack || 'No pack was written — see the headline.';
+  $('copyPack').disabled = $('dlPack').disabled = !pack;
+}
+
+$('copyPack').onclick = async () => {
+  if (!state.result || !state.result.pack) return;
+  try {
+    await navigator.clipboard.writeText(state.result.pack);
+    $('copyPack').textContent = 'Copied';
+  } catch {
+    $('copyPack').textContent = 'Select the text and copy it';
+  }
+  setTimeout(() => { $('copyPack').textContent = 'Copy'; }, 2000);
+};
+$('dlPack').onclick = () => state.result && download('ask-your-ai.md', state.result.pack, 'text/markdown');
+
+function fragNotice(text, cls) {
+  const el = $('fragNotice'); el.hidden = !text; el.className = `notice ${cls || ''}`; el.textContent = text || '';
+}
+
+// the editor's rules, or the example when the editor is empty — the same
+// fallback the engine makes, so the merge lands where the run will look
+function currentRules() { return state.config['rules.yml'].trim() ? state.config['rules.yml'] : state.examples['rules.yml']; }
+
+$('previewFrag').onclick = () => {
+  $('mergeFrag').disabled = true; $('fragPreview').innerHTML = ''; fragNotice('');
+  if (!$('fragment').value.trim()) { fragNotice('Paste the fragment your AI answered with first.'); return; }
+  worker.postMessage({ type: 'preview', rules: currentRules(), fragment: $('fragment').value });
+};
+$('mergeFrag').onclick = () => {
+  $('mergeFrag').disabled = true;
+  worker.postMessage({ type: 'merge', rules: currentRules(), fragment: $('fragment').value });
+};
+
+function renderPreview(m) {
+  const ul = $('fragPreview'); ul.innerHTML = '';
+  if (m.error) { fragNotice(`Not merged: ${m.error}`, 'bad'); return; }
+  for (const [section, line, pattern] of m.entries) {
+    const li = document.createElement('li');
+    li.innerHTML = '<b></b> gains <code></code>';
+    li.querySelector('b').textContent = line || section;
+    li.querySelector('code').textContent = pattern;
+    ul.appendChild(li);
+  }
+  for (const q of m.unsure) {
+    const li = document.createElement('li'); li.className = 'unsure';
+    li.textContent = `Left unsure by your AI: ${q}`;
+    ul.appendChild(li);
+  }
+  const n = m.entries.length;
+  if (!n) fragNotice(m.unsure.length ? 'Nothing to add: everything in the fragment was left unsure.' : 'Nothing new to add — every pattern is already in rules.yml.');
+  else fragNotice(`${n} entr${n === 1 ? 'y' : 'ies'} would be added; nothing is removed.`, 'ok');
+  $('mergeFrag').disabled = !n;
+}
+
+worker.addEventListener('message', async (e) => {
+  const m = e.data;
+  if (m.type === 'preview') renderPreview(m);
+  else if (m.type === 'merged') {
+    if (m.error) { fragNotice(`Not merged: ${m.error}`, 'bad'); return; }
+    state.config['rules.yml'] = m.rules;
+    await db.set('rules.yml', m.rules);
+    state.current = 'rules.yml'; showEditor();
+    $('fragment').value = ''; $('fragPreview').innerHTML = '';
+    const n = m.entries.length;
+    fragNotice(`${n} entr${n === 1 ? 'y' : 'ies'} added to rules.yml and saved in this browser; rebuilding.`, 'ok');
+    if (!$('run').disabled) $('run').onclick();
+  }
+});
 
 // ---------------------------------------------------------------- go
 loadConfig();

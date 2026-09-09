@@ -7,6 +7,8 @@ sample/budget.md
 sample/uncategorised.csv
 ledger.csv
 sample/ledger.csv
+ask-your-ai.md
+sample/ask-your-ai.md
 .pytest_cache/
 
 # Your personal configuration: names, dates, amounts. Copy the

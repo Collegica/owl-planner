@@ -267,6 +267,9 @@ def main(argv=None):
     ap.add_argument('--lumpy', type=float, default=1000.0,
                     help='transactions at or above this are treated as irregular '
                          'and reported individually rather than averaged (default 1000)')
+    ap.add_argument('--merge', metavar='FRAGMENT',
+                    help='append a rules.yml fragment (the answer to ask-your-ai.md) '
+                         'to the personal rules.yml, then run')
     a = ap.parse_args(argv)
 
     def cfg(name):
@@ -274,6 +277,20 @@ def main(argv=None):
         The personal files are gitignored: they describe your money."""
         f = Path(a.config) / f'{name}.yml'
         return f if f.exists() else HERE / f'{name}.example.yml'
+
+    if a.merge:
+        # the personal file is created from the example on first merge, so the
+        # answer lands somewhere that is gitignored either way
+        import rules_merge
+        try:
+            fragment = Path(a.merge).read_text()
+            added = rules_merge.preview(cfg('rules').read_text(), fragment)
+            merged = rules_merge.merge(cfg('rules').read_text(), fragment)
+        except (OSError, rules_merge.MergeError) as e:
+            sys.exit(f"--merge: {e}")
+        (Path(a.config) / 'rules.yml').write_text(merged)
+        print(f"  merged {len(added)} rule(s) from {Path(a.merge).name} into rules.yml"
+              if added else f"  nothing new in {Path(a.merge).name}; rules.yml unchanged")
 
     cat_defs = yaml.safe_load((HERE / 'categories.yml').read_text())
     cats, transfer_pats, income_pats, bank_cats = compile_rules(
@@ -733,6 +750,92 @@ def main(argv=None):
     if uncategorised:
         print(f"  wrote uncategorised.csv — {len(by_desc)} descriptions, "
               f"${sum(by_desc.values()):,.0f}. Add rules for the top few and re-run.")
+
+    # ---- the questions, for an AI of the reader's choosing -----------------
+    # One question per merchant signature, ranked by the money behind it, with
+    # the money left out: a name and a count can go into a chat window; an
+    # amount, a date or a card fragment must not. The answer comes back as a
+    # rules.yml fragment that rules_merge.py appends.
+    by_sig = defaultdict(lambda: [0.0, 0])
+    for _, desc, out, _ in uncategorised:
+        by_sig[signature(desc)][0] += out; by_sig[signature(desc)][1] += 1
+    names = [str(x[k]).lower() for key, k in (('lent', 'to'), ('counterparties', 'name'),
+                                              ('disbursements', 'to'), ('receipts', 'frm'))
+             for x in (loans_cfg.get(key) or []) if x.get(k)]
+    named = lambda sig: any(re.search(r'\b' + re.escape(n) + r'\b', sig) for n in names)
+    ranked = sorted(((s, v) for s, v in by_sig.items() if s and not named(s)), key=lambda x: -x[1][0])
+    withheld = len(by_sig) - len(ranked)
+    ASK_MOST = 40
+    asked = ranked[:ASK_MOST]
+    total_unc = sum(v[0] for v in by_sig.values())
+    share = 100 * sum(v[0] for _, v in asked) / total_unc if total_unc else 0
+    def band(total, n):
+        """total/count to one significant figure: the size of the thing, not
+        the amount of it"""
+        avg = total / n
+        if avg < 1: return '~$1'
+        mag = 10 ** (len(str(int(avg))) - 1)
+        return f"~${round(avg / mag) * mag:,.0f}"
+    groups = [('Savings', cat_defs.get('savings', {}).get('lines', []))] + \
+             [(g['label'], g['lines']) for g in cat_defs['expenses'].values()]
+    pack = ["# Questions for your AI", "",
+            "Written by OWL Planner. This file holds merchant names, how many times each "
+            "appeared, and a rough size band — and nothing else: no amount, no date, no "
+            "account or card number, no balance, no income, nobody's name. It is meant to be "
+            "pasted into an AI chat. What the AI answers comes back as rules you can read "
+            "before anything uses them.", "",
+            "Paste everything below the line into your AI. Save the answer as a file and run "
+            "`pixi run budget -- --merge answer.yml`, or paste it into the page under "
+            "\"Paste rules from your AI\".", "",
+            "---", "",
+            "I am sorting my bank transactions into budget lines. Below are the descriptions "
+            "my tool could not classify — one per merchant, lower-cased, with reference numbers "
+            "removed — with how many times each appeared and roughly how big each one was. "
+            "Please write a `rules.yml` fragment that assigns each one to a budget line.", "",
+            "- Use only the budget lines listed under \"Budget lines\". Do not invent a line.",
+            "- One pattern per description, under `categories:`. A pattern is a case-insensitive "
+            "regular expression matched against the bank's description; the description words "
+            "themselves are usually the right pattern.",
+            "- If a description is money moving between my own accounts — a credit-card payment, "
+            "a move to savings — put its pattern under `transfers:` instead. If it is income — "
+            "payroll, a tax refund — put it under `income:`.",
+            "- If a description could belong to more than one line, or you cannot tell what it is, "
+            "do not guess: list it under `unsure:` with a one-line question for me. "
+            "A wrong rule is worse than no rule.",
+            "- Answer with the YAML fragment only, in the shape shown under \"Rule format\".", "",
+            "## Budget lines", ""]
+    pack += [f"- {label}: " + '; '.join(lines_) for label, lines_ in groups]
+    pack += ["", "## Rule format", "", "```yaml",
+             "categories:",
+             "  Groceries: ['newtown grocer']",
+             "  Dentist: ['newtown dental']",
+             "transfers:",
+             "  - 'transfer to savings'",
+             "income:",
+             "  - 'payroll'",
+             "unsure:",
+             "  - 'the book': a bookshop (School supplies) or a magazine (Newspapers, magazines, music)?",
+             "```", "",
+             "## Descriptions to classify", ""]
+    if not asked:
+        pack += ["Nothing to ask: every transaction was classified."
+                 if not withheld else
+                 "Nothing to ask an AI: what was not classified names someone in loans.yml, "
+                 "and that is a question for you, not for an AI."]
+    else:
+        pack += [f"Ranked by the money behind them, largest first; the money itself is not shown. "
+                 f"{'These' if len(asked) > 1 else 'This one'} cover{'s' if len(asked) == 1 else ''} "
+                 f"{share:.0f}% of what was not classified"
+                 + (f" (the top {ASK_MOST} of {len(ranked)}; re-run for the rest)" if len(ranked) > ASK_MOST else '')
+                 + ".", ""]
+        pack += [f"- {sig} — {n} time{'s' if n != 1 else ''}, {band(total, n)} each" for sig, (total, n) in asked]
+        if withheld:
+            pack += ["", f"{withheld} description(s) withheld: they name someone in loans.yml, "
+                         f"and that is a question for you, not for an AI."]
+    (Path(a.out).parent / 'ask-your-ai.md').write_text("\n".join(pack) + "\n")
+    print(f"  wrote ask-your-ai.md — {len(asked)} merchant(s) to ask your AI about; "
+          f"names and counts only, no amounts, no dates." if asked else
+          f"  wrote ask-your-ai.md — nothing to ask; everything was classified.")
 
 
 def run(argv):
