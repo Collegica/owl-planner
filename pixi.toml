@@ -1,4 +1,4 @@
-[project]
+[workspace]
 name = "owl-planner"
 description = "OWL Planner — measure what a year costs you, from your own bank statements"
 channels = ["conda-forge"]
