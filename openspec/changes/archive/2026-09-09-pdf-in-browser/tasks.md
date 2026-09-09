@@ -13,4 +13,4 @@
 - [x] 3.1 Vendor pdf.js in `scripts/web_build.py` (pinned, SHA-256 recorded, first-party); verify `web/dist/` contains it and `grep -r cdn web/dist/*.js` is empty
 - [x] 3.2 Worker `convert` message: pdf.js items → Pyodide → CSV or refusal; verify on a fixture-derived PDF or the developer's local statements
 - [x] 3.3 Page: accept `.pdf`, list conversions with download, show refusals and unknown layouts; verify in the browser
-- [ ] 3.4 README and the article sentence about PDFs; `check-all` green
+- [x] 3.4 README and the article sentence about PDFs; `check-all` green
