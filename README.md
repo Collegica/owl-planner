@@ -15,6 +15,11 @@ pixi run budget          # after dropping your CSV exports in statements/
 Requires [pixi](https://pixi.sh); it fetches Python, PyYAML and poppler and
 nothing else. No accounts, no API keys, no network after install.
 
+**Or run it in your browser** at [collegica.org/owl](https://www.collegica.org/owl/):
+the same `budget.py`, run by Pyodide in a Web Worker, with nothing uploaded —
+your files stay in the tab and your rules in your browser's storage. PDFs still
+need the local tool.
+
 Everything runs on this machine. Nothing is uploaded and no credentials are
 involved: you export the CSVs yourself. Your statements and the budget they
 produce are gitignored.
@@ -275,6 +280,23 @@ pixi run ideas-index                 # regenerate the index after adding or edit
 pixi run ideas-check                 # what CI runs: index current, every header valid
 pixi run repo-health "owner/a owner/b"   # health signals before a repo is used as a source
 ```
+
+## The browser build
+
+`web/` is a static page that runs the engine unchanged: `worker.js` loads a
+vendored, pinned Pyodide and writes the dropped CSVs and the three YAML files
+into its virtual filesystem; `budget.run()` returns the report. Nothing is
+fetched after the runtime loads, and every asset is served from the page's own
+origin — the build vendors Pyodide rather than pointing at a CDN.
+
+```bash
+pixi run web-build      # assemble web/dist/ (about 14 MB; downloads Pyodide once)
+pixi run web-serve      # build, then serve at http://localhost:8765
+pixi run web-parity     # the engine in Pyodide must match the CLI on the sample
+```
+
+A published GitHub release attaches `owl-web.tar.gz`; the Collegica site's
+deploy unpacks the latest into `/owl/`.
 
 ## Then what
 

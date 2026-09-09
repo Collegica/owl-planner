@@ -17,3 +17,7 @@ __pycache__/
 .pixi/*
 !.pixi/config.toml
 .DS_Store
+
+# the browser build and its download cache
+web/dist/
+web/.cache/

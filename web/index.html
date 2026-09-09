@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OWL Planner — a year of spending, from your own statements</title>
+<meta name="description" content="Drop your bank exports; get the annual spending figure a plan starts with. Runs entirely in your browser — nothing is uploaded.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <div>
+    <div class="index">OWL Planner · Aging well</div>
+    <h1>A year of spending, <em>from your own statements</em></h1>
+    <p class="lede">Drop your bank exports, tell it what only you know, and read the one number every plan starts with. The same engine as the command-line tool, running in this tab.</p>
+  </div>
+  <nav class="links">
+    <a href="/aging-well/budget-from-statements/">How it works</a>
+    <a href="https://github.com/Collegica/owl-planner">Source</a>
+  </nav>
+</header>
+
+<div class="promise">
+  <span id="runtime" class="pill loading">Loading the runtime…</span>
+  <span><strong>Nothing leaves this tab.</strong> Your files stay in memory; your rules are saved in this browser only. Once the page has loaded you can disconnect from the network and it still works.</span>
+</div>
+
+<div class="grid">
+<div>
+
+  <section class="step">
+    <h2><span class="n">01</span> Statements</h2>
+    <p class="hint">CSV exports from online banking — every account you spend from, cards included. PDFs need the <a href="https://github.com/Collegica/owl-planner#1-export-the-statements">local tool</a>.</p>
+    <label class="drop" id="drop">
+      <strong>Drop CSV files here</strong> or click to choose
+      <input type="file" id="picker" multiple accept=".csv,text/csv">
+    </label>
+    <ul class="files" id="files"></ul>
+    <div id="dropNotice" class="notice" hidden></div>
+    <div class="row">
+      <button class="btn" id="loadSample" type="button">Try the invented household</button>
+      <span class="stored">Eight months, four accounts, nobody's real money.</span>
+    </div>
+  </section>
+
+  <section class="step">
+    <h2><span class="n">02</span> What only you know</h2>
+    <p class="hint">Which transfers are your own accounts, who your employer is, what you have lent and to whom. Patterns are case-insensitive regular expressions; first match wins.</p>
+    <div class="tabs" role="tablist" id="cfgTabs">
+      <button role="tab" aria-selected="true" data-name="rules.yml">rules.yml</button>
+      <button role="tab" aria-selected="false" data-name="loans.yml">loans.yml</button>
+      <button role="tab" aria-selected="false" data-name="known-annual.yml">known-annual.yml</button>
+    </div>
+    <textarea class="yml" id="editor" spellcheck="false"></textarea>
+    <div class="row">
+      <span class="stored" id="storedNote">Saved in this browser as you type.</span>
+      <span class="spacer"></span>
+      <button class="btn small" id="exportCfg" type="button">Export</button>
+      <button class="btn small" id="importCfg" type="button">Import</button>
+      <input type="file" id="importPicker" accept=".yml,.yaml" hidden>
+      <button class="btn small quiet" id="resetCfg" type="button">Reset to example</button>
+      <button class="btn small quiet danger" id="wipe" type="button">Delete everything stored here</button>
+    </div>
+  </section>
+
+  <section class="step">
+    <h2><span class="n">03</span> Run</h2>
+    <div class="row">
+      <button class="btn primary" id="run" type="button" disabled>Build the budget</button>
+      <label class="inline">Only year <input type="number" id="year" min="2000" max="2100" placeholder="all"></label>
+    </div>
+  </section>
+
+</div>
+<div class="out">
+  <div class="tabs" role="tablist" id="outTabs">
+    <button role="tab" aria-selected="true" data-pane="console">Headline</button>
+    <button role="tab" aria-selected="false" data-pane="budget">budget.md</button>
+    <button role="tab" aria-selected="false" data-pane="unc">Not yet categorised</button>
+  </div>
+  <div id="pane-console"><pre class="console" id="console">Drop statements and press <b>Build the budget</b>.
+
+The headline separates what was measured from what you stated,
+and lists what was set aside — transfers, lending, savings —
+so nothing disappears silently.</pre></div>
+  <div id="pane-budget" hidden>
+    <div class="row" style="margin:0 0 .5rem"><span class="spacer"></span><button class="btn small" id="dlBudget" type="button" disabled>Download budget.md</button></div>
+    <div class="md" id="budget"><p class="empty">No budget yet.</p></div>
+  </div>
+  <div id="pane-unc" hidden>
+    <p class="hint">Largest first — the order worth working in. Add a pattern under <code>categories</code> in rules.yml and run again.</p>
+    <div id="unc"><p class="empty">Nothing yet.</p></div>
+  </div>
+</div>
+</div>
+
+<footer>
+  <p>Measured from your own statements over the complete months you gave it. Not advice. Verify any limit or rate against the tax authority's own site before acting.</p>
+  <p>OWL Planner is MIT-licensed; the engine is <code>budget.py</code> from <a href="https://github.com/Collegica/owl-planner">the repository</a>, run in your browser by <a href="https://pyodide.org">Pyodide</a>, served from this site. <span id="version"></span></p>
+</footer>
+
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
