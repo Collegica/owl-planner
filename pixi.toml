@@ -14,6 +14,14 @@ openspec = "*"         # spec-driven changes: openspec/ and the /opsx:* commands
 budget     = { cmd = "python budget.py",     description = "Build a budget from the CSV exports in statements/" }
 pdf-import = { cmd = "python pdf_import.py", description = "Convert statement PDFs to CSV, reconciled against each statement's own totals (pass -- --dir <folder>)" }
 
+# --- the invented household ----------------------------------------------
+# sample/ is a fictional household: eight months, four accounts, every kind
+# of money movement. It is the demo, the test fixture and the only data the
+# repository will ever contain.
+sample       = { cmd = "python budget.py --dir sample/statements --config sample --out sample/budget.md", description = "Run the budget on the invented household in sample/" }
+sample-check = { cmd = "python budget.py --dir sample/statements --config sample --out sample/budget.md | diff sample/expected.txt - && echo 'sample output unchanged'", description = "Fail if the sample's output differs from sample/expected.txt (CI runs this)" }
+sample-regen = { cmd = "python scripts/make_sample.py && python budget.py --dir sample/statements --config sample --out sample/budget.md > sample/expected.txt", description = "Regenerate the sample statements and the expected output after an intended change" }
+
 # --- specs --------------------------------------------------------------
 # OpenSpec: openspec/specs/ is what the tool does today, openspec/changes/
 # is what is proposed. Everything runs from the pixi environment.
@@ -25,7 +33,7 @@ dashboard = { cmd = "openspec view", description = "Interactive view of specs an
 # docs/ideas/ is the stage before a change: one idea per file, index generated.
 ideas-index = { cmd = "python scripts/generate_ideas_index.py", description = "Regenerate docs/ideas/index.md from the idea headers" }
 ideas-check = { cmd = "python scripts/generate_ideas_index.py --check", description = "Fail if the ideas index is stale or a header is malformed (CI runs this)" }
-check-all   = { depends-on = ["specs", "ideas-check"], description = "Everything CI checks: specs, changes and the ideas index" }
+check-all   = { depends-on = ["specs", "ideas-check", "sample-check"], description = "Everything CI checks: specs, changes and the ideas index" }
 # Claude Code with openspec on PATH, so the /opsx:* commands work
 claude    = { cmd = "claude", description = "Open Claude Code inside the environment (the /opsx:* commands need openspec on PATH)" }
 

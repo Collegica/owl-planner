@@ -1,0 +1,52 @@
+  files 4   transactions 293   duplicates dropped 0
+  categorised 99% of spending
+  observed 2026-01-01 to 2026-09-02  (8 complete month(s))
+
+  LEVELLED    $831/month — support payment — made on the last day of the month from chequing
+              $6,650 over 7 transfer(s) in 8 months — a transfer cap can split the bigger ones, and a month-end
+              payment often clears on the 1st; charged monthly instead of on the dates they cleared
+
+  RECURRING   $4,853/month   ->  $58,232/year
+              months ranged $4,672-$5,278 (96%-109% of median); steady
+
+  ONE-OFF     2 item(s) you have judged one-time, held out of the average:
+              2026-05-20  $    3,800  MAIN STREET AUTO
+                          transmission — a repair, not a service interval
+              2026-02-10  $    1,500  E-TRANSFER SENT
+                          the wedding gift — once
+
+  IRREGULAR   1 transaction(s) at or above $1,000, held out of the average and not yet decided:
+              2026-07-14  $    2,400  AIR CANADA
+              Decide for each: one-off, yearly, or the start of a monthly payment. Averaging them is what makes a short window lie.
+
+  LENDING     not spending, and not income when it comes back
+              lent out in this window      $     5,000
+              repaid in this window        $     2,000
+              Friend A                 $     3,000 outstanding of $5,000
+              TOTAL OUTSTANDING        $     3,000  an asset, but unsecured and earning nothing
+
+  KNOWN YEARLY  from known-annual.yml, not from your statements:
+              Home insurance               $    1,450
+              Municipal taxes              $    2,750
+
+  SAVINGS     $500/month  ->  $6,000/year
+              Registered investments       $     4,000 over the window
+              not spending — it moves money, it does not consume it
+
+  INCOME      $7,700/month (median)  ->  $92,400/year
+              $62,412 identified over the window; months ranged $7,700-$8,512
+              savings rate 6.5% of income
+              against $58,232 of recurring spending, a surplus of $34,168/year
+
+  SET ASIDE   money that moved but was not spending:
+              lending (an asset, not spending)       $     5,000
+              pass-throughs (in and straight out)    $       500
+              transfers between your own accounts    $    43,294
+              still unidentified                     $       519
+                                                     -----------
+              total held out                         $    49,313
+
+  PLANNING FIGURE  $62,432/year  =  recurring $58,232 + known yearly $4,200
+  Add any irregular item you decide is yearly to known-annual.yml and re-run.
+  wrote sample/budget.md
+  wrote uncategorised.csv — 2 descriptions, $519. Add rules for the top few and re-run.

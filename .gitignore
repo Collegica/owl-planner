@@ -3,6 +3,8 @@ statements/*
 !statements/.gitkeep
 budget.md
 uncategorised.csv
+sample/budget.md
+sample/uncategorised.csv
 
 # Your personal configuration: names, dates, amounts. Copy the
 # *.example.yml files to make yours; only the examples are tracked.

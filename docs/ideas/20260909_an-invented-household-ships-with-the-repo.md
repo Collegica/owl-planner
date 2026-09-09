@@ -2,10 +2,10 @@
 id: IDEA-0008
 lens: canadian-planners
 capability: statement-import
-status: seed
+status: promoted
 effort: M
 value: high
-promoted_to: 
+promoted_to: openspec/changes/sample-household
 ---
 
 # Ship an invented household: sample statements so a fresh clone produces a complete budget

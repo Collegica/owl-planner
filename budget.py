@@ -173,10 +173,13 @@ def compile_rules(rules):
             bank)
 
 
-def main():
+def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--dir', default=str(HERE / 'statements'))
+    ap.add_argument('--config', default=str(HERE),
+                    help='folder holding rules.yml, loans.yml, known-annual.yml '
+                         '(default: beside budget.py); the examples fill in for any missing one')
     ap.add_argument('--year', type=int, help='keep only this calendar year')
     ap.add_argument('--out', default=str(HERE / 'budget.md'))
     ap.add_argument('--date-order', choices=['dmy', 'mdy'],
@@ -184,12 +187,12 @@ def main():
     ap.add_argument('--lumpy', type=float, default=1000.0,
                     help='transactions at or above this are treated as irregular '
                          'and reported individually rather than averaged (default 1000)')
-    a = ap.parse_args()
+    a = ap.parse_args(argv)
 
     def cfg(name):
         """Your own file if you have made one, else the committed example.
         The personal files are gitignored: they describe your money."""
-        f = HERE / f'{name}.yml'
+        f = Path(a.config) / f'{name}.yml'
         return f if f.exists() else HERE / f'{name}.example.yml'
 
     cat_defs = yaml.safe_load((HERE / 'categories.yml').read_text())
@@ -330,7 +333,7 @@ def main():
     if uncategorised:
         by_desc = defaultdict(float)
         for _, desc, out, _ in uncategorised: by_desc[desc] += out
-        with open(HERE / 'uncategorised.csv', 'w', newline='') as fh:
+        with open(Path(a.out).parent / 'uncategorised.csv', 'w', newline='') as fh:
             w = csv.writer(fh); w.writerow(['total', 'description'])
             for desc, v in sorted(by_desc.items(), key=lambda x: -x[1]):
                 w.writerow([f"{v:.2f}", desc])
@@ -396,10 +399,10 @@ def main():
     print()
     for note, (total, n) in sorted(levels.items()):
         print(f"  LEVELLED    ${total/len(whole):,.0f}/month — {note}")
-        print(f"              ${total:,.0f} over {n} transfer(s) in {len(whole)} months — the "
-              f"$3,000 Interac cap splits the bigger ones, and a")
-        print(f"              month-end payment often clears on the 1st; charged monthly "
-              f"instead of on the dates they cleared")
+        print(f"              ${total:,.0f} over {n} transfer(s) in {len(whole)} months — a transfer "
+              f"cap can split the bigger ones, and a month-end")
+        print(f"              payment often clears on the 1st; charged monthly instead of on "
+              f"the dates they cleared")
         print()
     print(f"  RECURRING   ${median:,.0f}/month   ->  ${baseline:,.0f}/year")
     if len(vals) > 1:
@@ -512,6 +515,21 @@ def main():
     if uncategorised:
         print(f"  wrote uncategorised.csv — {len(by_desc)} descriptions, "
               f"${sum(by_desc.values()):,.0f}. Add rules for the top few and re-run.")
+
+
+def run(argv):
+    """Run with CLI arguments and return the console report as text — the entry
+    point the browser build uses. A refusal (no CSVs, an ambiguous date file)
+    comes back as the message rather than a process exit."""
+    import contextlib
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+        try:
+            main(list(argv))
+        except SystemExit as e:
+            if e.code not in (None, 0):
+                print(e.code)
+    return buf.getvalue()
 
 
 if __name__ == '__main__':
