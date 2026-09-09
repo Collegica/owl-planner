@@ -1,0 +1,22 @@
+name: check
+
+# Specs and changes must validate; the ideas index must match its headers.
+# The budget itself is not run here: there are no statements in the repository,
+# and there never will be.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          pixi-version: v0.72.2
+          cache: true
+      - name: Specs, changes, ideas index
+        run: pixi run check-all

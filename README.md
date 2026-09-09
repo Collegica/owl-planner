@@ -262,6 +262,20 @@ pixi run claude                    # Claude Code with openspec on PATH, for /ops
 The first open change, `first-run-interview`, is the tool asking its own
 questions instead of leaving you a CSV.
 
+## Ideas
+
+`docs/ideas/` is the stage before a change: one idea per file, with a header saying where it
+came from, what it touches, and two judgements — effort and value — from which
+`docs/ideas/index.md` is generated in the order to work on them. The index also lists every
+capability with nothing filed, which is usually the most useful line in it. Method:
+[LENS](https://github.com/Nexclair/nexclaw/tree/main/nexskills/LENS).
+
+```bash
+pixi run ideas-index                 # regenerate the index after adding or editing an idea
+pixi run ideas-check                 # what CI runs: index current, every header valid
+pixi run repo-health "owner/a owner/b"   # health signals before a repo is used as a source
+```
+
 ## Then what
 
 The tool is written up — the file formats, an illustrative run, the core of

@@ -1,0 +1,28 @@
+# The product's capability catalogue — the stable ids that ideas, specs and
+# changes all refer to. The first seven are exactly the directories under
+# openspec/specs/; the last two are where the OWL framework goes next and have
+# no spec yet, which is why they are here: an empty row in docs/ideas/index.md
+# is a finding.
+capabilities:
+  - id: statement-import
+    name: Statement import
+  - id: pdf-reconciliation
+    name: PDF reconciliation
+  - id: money-classification
+    name: Money classification
+  - id: recurring-baseline
+    name: Recurring baseline
+  - id: lending-ledger
+    name: Lending ledger
+  - id: budget-report
+    name: Budget report
+  - id: privacy
+    name: Privacy
+  - id: household
+    name: Household
+  - id: planning
+    name: Planning hand-off
+
+cross_cutting:
+  - id: onboarding
+    name: Onboarding

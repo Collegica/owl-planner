@@ -20,6 +20,12 @@ pdf-import = { cmd = "python pdf_import.py", description = "Convert statement PD
 specs     = { cmd = "openspec validate --all --strict", description = "Validate every spec and open change" }
 changes   = { cmd = "openspec list", description = "List open changes and their task progress" }
 dashboard = { cmd = "openspec view", description = "Interactive view of specs and changes" }
+
+# --- ideas (LENS) -------------------------------------------------------
+# docs/ideas/ is the stage before a change: one idea per file, index generated.
+ideas-index = { cmd = "python scripts/generate_ideas_index.py", description = "Regenerate docs/ideas/index.md from the idea headers" }
+ideas-check = { cmd = "python scripts/generate_ideas_index.py --check", description = "Fail if the ideas index is stale or a header is malformed (CI runs this)" }
+check-all   = { depends-on = ["specs", "ideas-check"], description = "Everything CI checks: specs, changes and the ideas index" }
 # Claude Code with openspec on PATH, so the /opsx:* commands work
 claude    = { cmd = "claude", description = "Open Claude Code inside the environment (the /opsx:* commands need openspec on PATH)" }
 
@@ -42,6 +48,11 @@ description = "Print a change or a spec: pixi run show add-thing"
 args = ["name"]
 cmd = "openspec validate {{ name }} --strict"
 description = "Validate one change or spec: pixi run check add-thing"
+
+[tasks.repo-health]
+args = ["repos"]
+cmd = "python scripts/repo_health.py {{ repos }} --markdown"
+description = "LENS health signals for repos considered as sources: pixi run repo-health 'owner/a owner/b'"
 
 [tasks.archive]
 args = ["name"]
