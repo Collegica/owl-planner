@@ -1,0 +1,22 @@
+# The invented household's loans. Every name, date and amount here is made up.
+lent:
+  - to: Friend A
+    principal: 5000
+    repaid: 2000
+
+counterparties: []
+
+review: ['e-?transfer']
+review_min: 500
+
+disbursements:
+  - date: 2026-01-20
+    amount: 5000
+    to: Friend A
+    note: cheque
+
+receipts:
+  - date: 2026-04-05
+    amount: 2000
+    frm: Friend A
+    note: mobile cheque deposit

@@ -8,9 +8,11 @@ sample/uncategorised.csv
 
 # Your personal configuration: names, dates, amounts. Copy the
 # *.example.yml files to make yours; only the examples are tracked.
-rules.yml
-loans.yml
-known-annual.yml
+# Anchored to the root on purpose: sample/*.yml is the invented household
+# and must be tracked.
+/rules.yml
+/loans.yml
+/known-annual.yml
 
 __pycache__/
 *.pyc
