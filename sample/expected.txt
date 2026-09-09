@@ -53,3 +53,4 @@
   Add any irregular item you decide is yearly to known-annual.yml and re-run.
   wrote sample/budget.md
   wrote uncategorised.csv — 2 descriptions, $519. Add rules for the top few and re-run.
+  wrote ask-your-ai.md — 2 merchant(s) to ask your AI about; names and counts only, no amounts, no dates.
