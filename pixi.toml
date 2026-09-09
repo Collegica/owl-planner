@@ -15,5 +15,35 @@ budget     = { cmd = "python budget.py",     description = "Build a budget from 
 pdf-import = { cmd = "python pdf_import.py", description = "Convert statement PDFs to CSV, reconciled against each statement's own totals (pass -- --dir <folder>)" }
 
 # --- specs --------------------------------------------------------------
-specs      = { cmd = "openspec validate --all --strict", description = "Validate every spec and open change" }
-changes    = { cmd = "openspec list", description = "List open changes and their task progress" }
+# OpenSpec: openspec/specs/ is what the tool does today, openspec/changes/
+# is what is proposed. Everything runs from the pixi environment.
+specs     = { cmd = "openspec validate --all --strict", description = "Validate every spec and open change" }
+changes   = { cmd = "openspec list", description = "List open changes and their task progress" }
+dashboard = { cmd = "openspec view", description = "Interactive view of specs and changes" }
+# Claude Code with openspec on PATH, so the /opsx:* commands work
+claude    = { cmd = "claude", description = "Open Claude Code inside the environment (the /opsx:* commands need openspec on PATH)" }
+
+[tasks.propose]
+args = ["name"]
+cmd = "openspec new change {{ name }} && openspec status --change {{ name }}"
+description = "Start a change: pixi run propose add-thing, then fill in proposal, specs, design, tasks"
+
+[tasks.status]
+args = ["name"]
+cmd = "openspec status --change {{ name }}"
+description = "Which artifacts of a change exist: pixi run status add-thing"
+
+[tasks.show]
+args = ["name"]
+cmd = "openspec show {{ name }}"
+description = "Print a change or a spec: pixi run show add-thing"
+
+[tasks.check]
+args = ["name"]
+cmd = "openspec validate {{ name }} --strict"
+description = "Validate one change or spec: pixi run check add-thing"
+
+[tasks.archive]
+args = ["name"]
+cmd = "openspec archive {{ name }}"
+description = "Land a finished change: fold its deltas into openspec/specs/ and move it to the archive"

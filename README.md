@@ -245,13 +245,22 @@ difference between a tool people finish setting up and one they close.
 
 Behaviour is specified before it is built. `openspec/specs/` describes what the
 tool does today, one file per capability; `openspec/changes/` holds proposals
-that have not landed. To propose something, run `pixi run openspec new change <name>`
-(or `/opsx:propose` in Claude Code, from inside `pixi shell`) and fill in the
-proposal, spec delta, design and tasks; `pixi run specs` checks the lot. The
-OpenSpec CLI comes from conda-forge with everything else — nothing to install
-separately. The first open
-change, `first-run-interview`, is the tool asking its own questions instead of
-leaving you a CSV.
+that have not landed. The OpenSpec CLI comes from conda-forge with everything
+else, and the common moves are pixi tasks:
+
+```bash
+pixi run specs                     # validate every spec and open change
+pixi run changes                   # what is open, and how far along
+pixi run propose add-thing         # start a change, then fill in its four artifacts
+pixi run status add-thing          # which artifacts exist
+pixi run check add-thing           # validate one change
+pixi run archive add-thing         # land it: deltas fold into openspec/specs/
+pixi run dashboard                 # interactive view
+pixi run claude                    # Claude Code with openspec on PATH, for /opsx:*
+```
+
+The first open change, `first-run-interview`, is the tool asking its own
+questions instead of leaving you a CSV.
 
 ## Then what
 
