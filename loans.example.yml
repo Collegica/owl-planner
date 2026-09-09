@@ -1,0 +1,45 @@
+# Money lent to people. A loan is not spending and not a transfer between your
+# own accounts — it is an asset you are holding, and it belongs in neither the
+# budget nor income. Repayments coming back are not income either.
+#
+# The statements cannot tell you who an e-transfer went to, so record the
+# arrangement here and the tool will report what is outstanding.
+#
+# Copy this file to loans.yml (gitignored) and fill it in.
+
+lent:
+  # - to: Friend A
+  #   principal: 5000
+  #   repaid: 2000
+
+# Counterparties where the e-transfers in BOTH directions are loan flows.
+# Make sure the pattern cannot catch payroll from the same name: an
+# "e-Transfer ... Acme" may be lending while "Payroll Deposit ACME" is income.
+counterparties:
+  # - name: Friend A
+  #   match: 'e-?transfer.*friend a'
+
+# Outflows matching these patterns are not classified automatically — a
+# statement cannot tell you why an e-transfer was sent. They are listed for you
+# to identify, and counted as neither spending nor lending until you say.
+# Inferring loans from the pattern alone overstated lending by more than 2x
+# during development.
+review: ['e-?transfer']
+review_min: 500
+
+# Specific disbursements a pattern cannot safely identify. A cheque shows up as
+# a branch withdrawal like any other; only you know what it was for. Matched on
+# date and amount so no other withdrawal is swept up with it.
+disbursements:
+  # - date: 2026-01-20
+  #   amount: 5000
+  #   to: Friend A
+  #   note: cheque
+
+# Repayments received. Not income — they reduce what is outstanding. Legs that
+# fall after your last exported statement are reported as such, not lost.
+receipts:
+  # - date: 2026-04-05
+  #   amount: 2000
+  #   frm: Friend A
+  #   note: mobile cheque deposit

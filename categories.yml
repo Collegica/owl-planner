@@ -1,0 +1,40 @@
+# Expense taxonomy, structured after a standard financial-planning intake form.
+# Rebuilt as our own schema — the grouping is functional, not copied artwork.
+savings:
+  label: Savings
+  lines: [Registered investments, Non-registered investments, TFSA, Other savings]
+
+expenses:
+  housing:
+    label: Housing
+    lines: [Mortgage, Rent, Municipal taxes, School taxes, Home insurance,
+            Condo fees, "Furniture, accessories, tools", Other housing]
+  utilities:
+    label: Utilities
+    lines: [Electricity, Heating, Telephone, Mobile, Cable, Internet, Other utilities]
+  transportation:
+    label: Transportation
+    lines: [Public transit, Car loan / lease, Gas, Car insurance, Registration,
+            Driver's licence, Parking, Maintenance and repairs, Taxi,
+            Other transportation]
+  food:
+    label: Food
+    lines: [Groceries, Restaurants, Alcohol, Other food]
+  recreation:
+    label: Recreation / education
+    lines: [Cultural activities, Sports, "Newspapers, magazines, music",
+            Movies and game rentals, Lottery tickets, Travel, Courses,
+            School fees, School supplies, Other recreation]
+  health:
+    label: Health care
+    lines: [Pharmacy, Dentist, Optometrist, Other health care, Life insurance,
+            Other insurance]
+  debt:
+    label: Debt repayment
+    lines: [Credit card interest, Line of credit, Personal loan, Student loan,
+            RRSP loan, HBP, Other loans]
+  personal:
+    label: Personal
+    lines: [Clothing, Hairdresser, Esthetician, Gifts, Pets, Tobacco,
+            Child support, Children's allowance, Banking fees, Alimony,
+            Childcare, Other personal]

@@ -1,0 +1,17 @@
+# Bank exports and everything derived from them — never commit these
+statements/*
+!statements/.gitkeep
+budget.md
+uncategorised.csv
+
+# Your personal configuration: names, dates, amounts. Copy the
+# *.example.yml files to make yours; only the examples are tracked.
+rules.yml
+loans.yml
+known-annual.yml
+
+__pycache__/
+*.pyc
+.pixi/*
+!.pixi/config.toml
+.DS_Store

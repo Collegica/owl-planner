@@ -1,0 +1,139 @@
+# description pattern (case-insensitive regex)  ->  budget line
+#
+# Order matters: the first match wins. Add your own at the top of a group as
+# you triage uncategorised.csv — that file is the whole feedback loop.
+
+# --- Excluded: money moving between your own accounts ----------------------
+# Counting these as spending is the single most common budgeting error. If you
+# export both a chequing account and a credit card, the card PAYMENT is not
+# spending — the individual card purchases already are. Counting both doubles
+# every dollar you put on the card.
+transfers:
+  - 'payment.*(thank you|received)'
+  - '(pay|payment) to .*(visa|mastercard|amex|credit card)'
+  - 'credit card.*payment'
+  - 'transfer (to|from) .*(savings|chequing|checking|tfsa|rrsp)'
+  - '(mb-)?transfer to\s+credit\s*card'
+  # a line-of-credit advance repaid from chequing a few days later is three
+  # legs and one dollar: list every leg.
+  - 'cash advance to\s*-'
+  - 'royal bank of canada'
+  - 'payment from\s*-'
+  - 'online banking (transfer|payment).*(visa|master|scotia|loc|line of credit)'
+  - 'online banking loan payment'
+  - 'online banking transfer'
+  - '(mb-)?transfer (to|from) .*(visa|mastercard|amex)'
+  - 'internet transfer'
+  - 'virement'
+  - 'e-?transfer.*(to|from) (self|myself)'
+
+# --- Income: inflows that are not refunds ---------------------------------
+income:
+  - 'payroll|paie|salary|direct deposit.*(pay|payroll)'
+  - 'tax refund'
+  # - 'your employer'          # e-transfers from an employer look like any other
+  - 'canada (fed|pro)|cra |arc '
+  - 'interest paid|interet'
+
+categories:
+  Groceries:        ['loblaw','metro\b','sobeys','iga\b','provigo','maxi\b','no ?frills','food basics','superstore','costco whsl','walmart.*(grocery|supercent)','farm boy','whole foods','t&t','adonis']
+  Restaurants:      ['restaurant','uber\s?eats','doordash','skipthedishes','tim hortons','starbucks','mcdonald','subway\b','pizza','sushi','cafe|café','bar & grill','a&w','harvey','swiss chalet']
+  Alcohol:          ['saq\b','lcbo','beer store','liquor','brasseur']
+  Gas:              ['petro[- ]?canada','esso','shell\b','ultramar','irving','husky','couche[- ]tard','circle k','chevron']
+  Public transit:   ['stm\b','exo\b','ttc\b','presto','opus card','translink','transit']
+  Parking:          ['parking','stationnement','indigo park','impark']
+  Taxi:             ['uber(?!\s?eats)','lyft','taxi','teo taxi']
+  Car insurance:    ['(intact|belair|desjardins|aviva|allstate|td).*(insurance|assurance)']
+  Maintenance and repairs: ['toyota','canadian tire','napa auto','mr lube','jiffy lube','garage','pneus|tires']
+  Registration:     ['saaq','service ontario.*plate','icbc']
+  Electricity:      ['hydro[- ]?(quebec|one|ottawa)','bc hydro','epcor','enmax']
+  Heating:          ['utility bill pmt.*enbridge','energir','enbridge','gaz metro','propane','oil.*heat']
+  Mobile:           ['fido','koodo','telus mobil','rogers wireless','bell mobil','virgin plus','public mobile','freedom mobile','chatr']
+  Internet:         ['videotron','teksavvy','bell internet','rogers.*internet','shaw\b','ebox']
+  Cable:            ['netflix','crave','disney\+?','spotify','apple ?(tv|music)','prime video','youtube premium']
+  Rent:             ['^rent\b','loyer']
+  Mortgage:         ['mortgage payment','mortgage','hypoth[eè]que']
+  Home insurance:   ['home ?insurance','habitation']
+  Pharmacy:         ['pharmaprix','jean coutu','shoppers drug','rexall','uniprix','pharmacy','brunet']
+  Dentist:          ['dentist|dentaire|orthodont']
+  Optometrist:      ['optometr|opticien|lunetterie|iris\b|new look eyewear']
+  Life insurance:   ['assomption vie','life insurance|assurance vie|manulife|sun life|canada life']
+  Clothing:         ['zara','h&?m\b','uniqlo','winners','simons','gap\b','old navy','sportchek','decathlon','mark.s\b','roots\b']
+  Hairdresser:      ['coiffure|salon|barber|hair\b']
+  Gifts:            ['gift|cadeau']
+  Pets:             ['mondou','pet ?smart','petland','veterinar|v[ée]t[ée]rinaire','animalerie']
+  Banking fees:     ['monthly (plan|account) fee','frais mensuel','service charge','nsf fee','overdraft','atm fee','interest charge.*account']
+  # Child support:  ['withdrawal.*interac e-?transfer']   # only if that is what those are
+  Childcare:        ['daycare|garderie|cpe\b|childcare']
+  Sports:           ['goodlife','gym','fitness','ymca','econofitness','nautilus','climb','ski\b','aren[ae]']
+  Travel:           ['air canada','westjet','porter air','expedia','booking\.com','airbnb','hotel','h[oô]tel','via rail','flixbus']
+  Courses:          ['udemy','coursera','pluralsight','o.?reilly','masterclass']
+  "Newspapers, magazines, music": ['le devoir','la presse','globe and mail','new york times','the athletic','substack','medium\.com']
+  Movies and game rentals: ['cineplex','cinema|cin[ée]ma','steam games','nintendo','playstation','xbox']
+  Cultural activities: ['museum|mus[ée]e','theatre|th[eé][aâ]tre','concert','ticketmaster','evenko']
+  School fees:      ['tuition|scolarit[ée]|school fee']
+  School supplies:  ['bureau en gros','staples','indigo|chapters','renaud[- ]bray']
+  "Furniture, accessories, tools": ['ikea','structube','home depot','rona\b','r[ée]no[- ]d[ée]p[oô]t','wayfair','leon.s|the brick']
+  Credit card interest: ['interest charge|int[ée]r[eê]ts.*carte']
+  Line of credit:   ['line of credit|marge de cr[ée]dit']
+  Student loan:     ['student loan|pr[eê]t [ée]tudiant|nslsc|aide financi[eè]re']
+  Personal loan:    ['personal loan|pr[eê]t personnel']
+  Registered investments: ['mutual funds fidelity','rrsp contribution']
+  Other savings:    ['transfer to.*(wealthsimple|questrade|disnat)','wealthsimple','questrade']
+
+# --- Levelled obligations -------------------------------------------------
+# A payment made on the last day of the month sometimes clears on the 1st or
+# 2nd of the next one. Bucketing by the date on the statement then invents a
+# double month and an empty one, and the year's spread reads as chaos that
+# isn't there. An obligation listed here is charged at its monthly rate --
+# what was actually paid, divided by the months observed -- instead of on the
+# date it happened to clear. Only list payments that really are monthly: this
+# is a fix for a calendar artefact, not a way to smooth real variation.
+level:
+  # - match: 'withdrawal.*interac'
+  #   note: what the obligation is, and which account pays it
+
+# --- Pass-throughs --------------------------------------------------------
+# Money that arrived and left again for the same reason. Neither side is
+# income or spending; counting either one distorts both. Pinned by date and
+# amount because no pattern can tell a pass-through from a real payment.
+passthrough:
+  # - date: 2026-03-15
+  #   amount: 250
+  #   note: reward received — a rebate, not income
+  # - date: 2026-03-15
+  #   amount: 250
+  #   note: the same reward passed straight on
+
+# --- Dated one-offs -------------------------------------------------------
+# A transaction only you can classify, pinned to date and amount so nothing
+# else is swept up. Kept out of the recurring baseline by the size test.
+dated:
+  # - date: 2026-02-10
+  #   amount: 1500
+  #   line: Gifts
+  #   note: why it belongs there
+
+# --- Decided one-offs -----------------------------------------------------
+# An irregular item you have looked at and judged genuinely one-time. It stays
+# out of the recurring baseline either way; recording it here just stops the
+# tool asking again, and leaves the reason on the record.
+one_off:
+  # - date: 2026-05-20
+  #   amount: 2345.67
+  #   note: a repair, not a service interval
+
+# --- Fallback: the bank's own category, when no rule above matched ---------
+# Several banks append a category to each description. It is coarse — "Retail
+# and Grocery" is both a supermarket and a hardware store — so it is used only
+# after the specific rules, and lines it fills are marked in the budget.
+bank_categories:
+  'Retail and Grocery': Groceries
+  'Restaurants': Restaurants
+  'Transportation': Other transportation
+  'Professional and Financial Services': Banking fees
+  'Personal and Household Expenses': Other personal
+  'Health and Education': Other health care
+  'Home and Office Improvement': "Furniture, accessories, tools"
+  'Entertainment and Recreation': Other recreation
+  'Currency Transactions': Other personal
