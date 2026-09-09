@@ -2,7 +2,7 @@
 
 *Generated from the headers in this folder. Do not edit; edit the idea.*
 
-28 ideas: 25 seed, 0 explored, 1 promoted, 2 retired.
+29 ideas: 25 seed, 0 explored, 2 promoted, 2 retired.
 
 ## In order
 
@@ -108,8 +108,9 @@ Open ideas (`seed`, `explored`) by value, then by effort — S is days, M weeks,
 | IDEA-0020 | [A tax and benefit engine inside OWL Planner — retired](20260909_a-tax-engine.md) | `canadian-planners` | low | L | retired |  |
 | IDEA-0028 | [Expected repayments are dated inflows in the plan, not just an outstanding balance](20260909_receivables-in-the-plan.md) | `formal-loan-record` | medium | S | seed |  |
 
-## Onboarding (`onboarding`) — 1
+## Onboarding (`onboarding`) — 2
 
 | id | idea | lens | value | effort | status | went to |
 |---|---|---|---|---|---|---|
 | IDEA-0007 | [The first run produces a ranked question list instead of an uncategorised CSV](20260909_the-tool-asks-its-own-questions.md) | `review` | high | M | promoted | `openspec/changes/first-run-interview` |
+| IDEA-0029 | [Run the engine in the browser, with nothing uploaded](20260909_run-in-the-browser.md) | `customer` | high | M | promoted | `openspec/changes/owl-web` |
