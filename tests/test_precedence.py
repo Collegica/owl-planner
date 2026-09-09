@@ -171,3 +171,132 @@ def test_ledger_covers_every_transaction(tmp_path):
     kinds = {r['kind'] for r in ledger.values()}
     assert kinds <= {'passthrough', 'lending', 'repayment', 'transfer', 'income', 'refund',
                      'savings', 'spending', 'review', 'uncategorised'}
+
+
+# ---- an annotated ledger: verified labels, all or nothing per file ----------
+LEDGER_HEADER = ['date', 'description', 'amount', 'kind', 'line', 'rule']
+
+
+def annotate(folder: Path, rows: list[tuple], name='annotated.csv'):
+    """Write an annotated ledger beside the statements: rows are (date,
+    description, signed amount as the bank shows it, kind, line)."""
+    with open(folder / 'statements' / name, 'w', newline='') as fh:
+        w = csv.writer(fh); w.writerow(LEDGER_HEADER)
+        for d, desc, amt, kind, line in rows: w.writerow([d, desc, amt, kind, line, ''])
+    return folder
+
+
+BOOK = ('2026-06-03', 'THE BOOK NOOK NEWTOWN', -38.50)   # matches no pattern in RULES
+
+
+def test_annotated_label_lands_on_its_line(tmp_path):
+    # the row is labelled with a line no pattern would give it; the ledger
+    # records the label and the rule that applied it, and the file is reported
+    # with the number of rows applied — a row left 'uncategorised' carries no
+    # label and is classified as before, and whitespace inside a description
+    # does not break the match
+    folder = household(tmp_path, eight_months([BOOK]))
+    annotate(folder, [('2026-06-03', 'THE  BOOK   NOOK NEWTOWN', '-38.50', 'spending', 'Newspapers, magazines, music'),
+                      ('2026-01-05', 'CORNER GROCER', '-320.00', 'uncategorised', '')])
+    text, ledger = run(folder)
+    row = ledger[('2026-06-03', 'THE BOOK NOOK NEWTOWN')]
+    assert (row['kind'], row['line'], row['rule']) == ('spending', 'Newspapers, magazines, music', 'annotated')
+    assert ledger[('2026-01-05', 'CORNER GROCER')]['line'] == 'Groceries'
+    assert 'annotated   annotated.csv — 1 row applied' in text
+    assert 'refused' not in text
+
+
+def test_annotated_label_beats_a_pattern(tmp_path):
+    folder = household(tmp_path, eight_months([('2026-06-09', 'CORNER GROCER', -50.00)]))
+    annotate(folder, [('2026-06-09', 'CORNER GROCER', '-50.00', 'spending', 'Gifts')])
+    _, ledger = run(folder)
+    assert (ledger[('2026-06-09', 'CORNER GROCER')]['line'], ledger[('2026-06-09', 'CORNER GROCER')]['rule']) == ('Gifts', 'annotated')
+    assert ledger[('2026-06-05', 'CORNER GROCER')]['line'] == 'Groceries'   # the pattern still holds elsewhere
+
+
+def test_a_dated_pin_still_beats_an_annotated_label(tmp_path):
+    folder = household(tmp_path, eight_months([BOOK]))
+    (folder / 'rules.yml').write_text(RULES + "dated:\n  - date: 2026-06-03\n    amount: 38.50\n    line: Gifts\n")
+    annotate(folder, [('2026-06-03', 'THE BOOK NOOK NEWTOWN', '-38.50', 'spending', 'Groceries')])
+    text, ledger = run(folder)
+    row = ledger[('2026-06-03', 'THE BOOK NOOK NEWTOWN')]
+    assert (row['line'], row['rule']) == ('Gifts', 'dated pin')
+    assert 'annotated.csv — 0 rows applied' in text   # accepted, but the pin took the row
+
+
+def test_an_altered_amount_refuses_the_whole_file(tmp_path):
+    # one shifted decimal point refuses the file and names the row; the other,
+    # correct row in the same file is not applied either, and the run goes on
+    folder = household(tmp_path, eight_months([BOOK, ('2026-06-09', 'CORNER GROCER', -50.00)]))
+    annotate(folder, [('2026-06-03', 'THE BOOK NOOK NEWTOWN', '-3.85', 'spending', 'Newspapers, magazines, music'),
+                      ('2026-06-09', 'CORNER GROCER', '-50.00', 'spending', 'Gifts')])
+    text, ledger = run(folder)
+    assert '! annotated.csv: refused — 1 of 2 rows' in text
+    assert "2026-06-03  THE BOOK NOOK NEWTOWN  -3.85  — amount differs from the statement's -38.50" in text
+    assert ledger[('2026-06-03', 'THE BOOK NOOK NEWTOWN')]['kind'] == 'uncategorised'
+    assert ledger[('2026-06-09', 'CORNER GROCER')]['line'] == 'Groceries'
+    assert 'RECURRING' in text and 'annotated   annotated.csv' not in text
+
+
+def test_a_row_that_matches_nothing_refuses_the_file(tmp_path):
+    folder = household(tmp_path, eight_months([BOOK]))
+    annotate(folder, [('2026-06-04', 'THE BOOK NOOK NEWTOWN', '-38.50', 'spending', 'Newspapers, magazines, music')])
+    text, ledger = run(folder)
+    assert 'refused — 1 of 1 rows' in text and 'no matching transaction in the statements' in text
+    assert ledger[('2026-06-03', 'THE BOOK NOOK NEWTOWN')]['kind'] == 'uncategorised'
+
+
+def test_an_unknown_line_or_kind_refuses_the_file(tmp_path):
+    folder = household(tmp_path, eight_months([BOOK, ('2026-06-09', 'CORNER GROCER', -50.00)]))
+    annotate(folder, [('2026-06-03', 'THE BOOK NOOK NEWTOWN', '-38.50', 'spending', 'Books'),
+                      ('2026-06-09', 'CORNER GROCER', '-50.00', 'gift', '')])
+    text, ledger = run(folder)
+    assert 'refused — 2 of 2 rows' in text
+    assert "line 'Books' is not in categories.yml" in text
+    assert "kind 'gift' is not one of" in text
+    assert ledger[('2026-06-03', 'THE BOOK NOOK NEWTOWN')]['kind'] == 'uncategorised'
+
+
+def test_at_most_ten_offenders_are_named(tmp_path):
+    folder = household(tmp_path, eight_months())
+    annotate(folder, [(f'2026-06-{d:02d}', 'NOWHERE SHOP', '-1.00', 'spending', 'Gifts') for d in range(1, 14)])
+    text, _ = run(folder)
+    assert 'refused — 13 of 13 rows' in text and 'and 3 more' in text
+    assert text.count('NOWHERE SHOP') == 10
+
+
+def test_a_ledger_is_annotations_not_a_statement(tmp_path):
+    # the same row count with and without the annotated file: it added nothing
+    rows = eight_months([BOOK])
+    for sub in ('a', 'b'): (tmp_path / sub).mkdir()
+    plain, _ = run(household(tmp_path / 'a', rows))
+    folder = annotate(household(tmp_path / 'b', rows),
+                      [('2026-06-03', 'THE BOOK NOOK NEWTOWN', '-38.50', 'spending', 'Gifts')])
+    text, _ = run(folder)
+    files_line = lambda t: next(l for l in t.splitlines() if l.startswith('  files '))
+    assert files_line(text) == files_line(plain)
+    assert files_line(text).startswith('  files 2 ')
+
+
+def test_a_ledger_alone_is_refused(tmp_path):
+    folder = household(tmp_path, eight_months())
+    for f in (folder / 'statements').glob('*.csv'): f.unlink()
+    annotate(folder, [('2026-06-03', 'THE BOOK NOOK NEWTOWN', '-38.50', 'spending', 'Gifts')])
+    text = budget.run(['--dir', str(folder / 'statements'), '--config', str(folder), '--out', str(folder / 'budget.md')])
+    assert 'Annotations need the original exports' in text
+    assert not (folder / 'ledger.csv').exists()
+
+
+def test_the_tools_own_ledger_round_trips(tmp_path):
+    # ledger.csv handed straight back is accepted whole, and every kind is the
+    # same as before: the labels only restate what the rules decided
+    rows = eight_months([BOOK, ('2026-02-14', 'WITHDRAWAL FREE INTERAC E-TRANSFER', -3000.00),
+                         ('2026-03-15', 'CASHBACK REWARD', 250.00), ('2026-03-15', 'E-TRANSFER SENT', -250.00)])
+    folder = household(tmp_path, rows)
+    _, before = run(folder)
+    (folder / 'ledger.csv').rename(folder / 'statements' / 'annotated.csv')
+    text, after = run(folder)
+    assert 'refused' not in text and 'annotated   annotated.csv — ' in text
+    assert {k: (r['kind'], r['line']) for k, r in before.items()} == {k: (r['kind'], r['line']) for k, r in after.items()}
+    assert after[('2026-02-14', 'WITHDRAWAL FREE INTERAC E-TRANSFER')]['rule'] == 'pin'   # the loan pin still wins
+    assert after[('2026-01-01', 'PAYROLL DEPOSIT ACME')]['rule'] == 'annotated'
