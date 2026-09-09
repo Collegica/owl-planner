@@ -209,11 +209,13 @@ function showResult(m) {
   $('console').innerHTML = colourConsole(text);
   $('budget').innerHTML = m.budget ? renderMarkdown(m.budget) : '<p class="empty">No budget was written — see the headline.</p>';
   $('dlBudget').disabled = !m.budget;
+  $('dlLedger').disabled = !m.ledger;
   $('unc').innerHTML = m.uncategorised ? renderUncategorised(m.uncategorised) : '<p class="empty">Everything was categorised.</p>';
   selectPane('console');
 }
 
 $('dlBudget').onclick = () => state.result && download('budget.md', state.result.budget, 'text/markdown');
+$('dlLedger').onclick = () => state.result && download('ledger.csv', state.result.ledger, 'text/csv');
 
 function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
@@ -222,7 +224,11 @@ function colourConsole(text) {
     .replace(/^(  )([A-Z][A-Z -]+?)(\s{2,})/gm, '$1<span class="k">$2</span>$3')
     .replace(/\$[\d,]+(?:\.\d+)?(?:\/(?:month|year))?/g, (m) => `<span class="amt">${m}</span>`)
     .replace(/\bsteady\b/g, '<span class="ok">steady</span>')
-    .replace(/UNEVEN[^\n]*/g, (m) => `<span class="warn">${m}</span>`);
+    .replace(/UNEVEN[^\n]*/g, (m) => `<span class="warn">${m}</span>`)
+    .replace(/MEASURED over [^\n]*/g, (m) => `<span class="ok">${m}</span>`)
+    .replace(/ESTIMATE — [^\n]*/g, (m) => `<span class="warn">${m}</span>`)
+    .replace(/UNKNOWN — [^\n]*/g, (m) => `<span class="bad">${m}</span>`)
+    .replace(/^(  )(<span class="k">COVERAGE<\/span>)/m, '$1<span class="bad">COVERAGE</span>');
 }
 
 // budget.md is headings, paragraphs and pipe tables. That is all this renders.

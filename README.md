@@ -52,15 +52,24 @@ pixi run budget
 That writes `budget.md` and prints the headline:
 
 ```
-files 4   transactions 565   duplicates dropped 0
-categorised 98% of spending
-observed 2026-01-01 to 2026-08-31  (8 complete month(s))
+files 4   transactions 293   duplicates dropped 0
+categorised 99% of spending
+observed 2026-01-01 to 2026-09-02  (8 complete month(s))
 
-RECURRING   $4,150/month   ->  $49,800/year
-            months ranged $3,720-$4,520 (90%-109% of median); steady
+RECURRING   $4,853/month   ->  $58,232/year   MEASURED over 8 complete months
+            Jan 5,161 · Feb 5,147 · Mar 5,278 · Apr 4,877* · May 4,763 · Jun 4,672 · Jul 4,828* · Aug 4,819
+            (* the medians; complete months only)
+            months ranged $4,672-$5,278 (96%-109% of median); steady
 ```
 
-(The figures in this document are illustrative, not anyone's.)
+(That is the invented household in `sample/`; `pixi run sample` prints the
+whole thing.) The word after the annual figure is the point: **MEASURED** needs
+three complete calendar months. With one or two you get a monthly
+**ESTIMATE** and no annual figure; with none, **UNKNOWN** and a request for
+whole months. If card payments leave chequing and no card export shows them
+arriving, a **COVERAGE** warning comes before any figure at all. Every
+transaction, the kind it was judged to be and the rule that judged it is in
+`ledger.csv`.
 
 Useful flags: `--year 2026` to restrict to one calendar year, `--dir` to read
 from somewhere else, `--date-order dmy|mdy` for the ambiguous-date case below.

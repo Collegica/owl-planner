@@ -49,6 +49,7 @@ async function run({ files, config, year }) {
   }
   try { pyodide.FS.unlink(`${WORK}/budget.md`); } catch { /* first run */ }
   try { pyodide.FS.unlink(`${WORK}/uncategorised.csv`); } catch { /* first run */ }
+  try { pyodide.FS.unlink(`${WORK}/ledger.csv`); } catch { /* first run */ }
 
   const argv = ['--dir', `${WORK}/statements`, '--config', WORK, '--out', `${WORK}/budget.md`];
   if (year) argv.push('--year', String(year));
@@ -62,6 +63,7 @@ budget.run(argv)
     console: console_,
     budget: readIfExists(`${WORK}/budget.md`),
     uncategorised: readIfExists(`${WORK}/uncategorised.csv`),
+    ledger: readIfExists(`${WORK}/ledger.csv`),
   });
 }
 

@@ -97,6 +97,7 @@ pre.console .k { color: #C9D1F0; font-weight: 600; }
 pre.console .amt { color: #FFD79A; }
 pre.console .ok { color: #9FD8B4; }
 pre.console .warn { color: #F2B35C; }
+pre.console .bad { color: #F49A9A; font-weight: 600; }
 .md { padding: .25rem .1rem; }
 .md h1 { font: 400 1.7rem/1.15 var(--serif); margin: .8rem 0 .4rem; }
 .md h2 { font: 400 1.3rem/1.15 var(--serif); margin: 1.1rem 0 .3rem; color: var(--navy-700); }

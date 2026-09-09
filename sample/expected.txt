@@ -5,8 +5,11 @@
   LEVELLED    $831/month — support payment — made on the last day of the month from chequing
               $6,650 over 7 transfer(s) in 8 months — a transfer cap can split the bigger ones, and a month-end
               payment often clears on the 1st; charged monthly instead of on the dates they cleared
+              Jan 31 950 · Feb 28 950 · Apr 1 950 · Apr 30 950 · Jun 1 950 · Jun 30 950 · Jul 31 950
 
-  RECURRING   $4,853/month   ->  $58,232/year
+  RECURRING   $4,853/month   ->  $58,232/year   MEASURED over 8 complete months
+              Jan 5,161 · Feb 5,147 · Mar 5,278 · Apr 4,877* · May 4,763 · Jun 4,672 · Jul 4,828* · Aug 4,819
+              (* the medians; complete months only)
               months ranged $4,672-$5,278 (96%-109% of median); steady
 
   ONE-OFF     2 item(s) you have judged one-time, held out of the average:
@@ -39,10 +42,10 @@
               against $58,232 of recurring spending, a surplus of $34,168/year
 
   SET ASIDE   money that moved but was not spending:
-              lending (an asset, not spending)       $     5,000
-              pass-throughs (in and straight out)    $       500
-              transfers between your own accounts    $    43,294
-              still unidentified                     $       519
+              lending (an asset, not spending)       $     5,000     1 transaction
+              pass-throughs (in and straight out)    $       500     2 transactions
+              transfers between your own accounts    $    43,294    36 transactions
+              still unidentified                     $       519     5 transactions
                                                      -----------
               total held out                         $    49,313
 

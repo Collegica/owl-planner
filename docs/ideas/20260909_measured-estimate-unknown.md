@@ -2,10 +2,10 @@
 id: IDEA-0006
 lens: review
 capability: budget-report
-status: seed
+status: promoted
 effort: S
 value: high
-promoted_to: 
+promoted_to: openspec/changes/trust-the-number
 ---
 
 # Three typographic states in the report: MEASURED, ESTIMATE, UNKNOWN

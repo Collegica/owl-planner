@@ -2,10 +2,10 @@
 id: IDEA-0005
 lens: customer
 capability: statement-import
-status: seed
+status: promoted
 effort: S
 value: high
-promoted_to: 
+promoted_to: openspec/changes/trust-the-number
 ---
 
 # Detect a card paid from chequing whose own export is missing, and say so before reporting

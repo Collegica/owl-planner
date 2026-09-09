@@ -1,10 +1,4 @@
-# Budget Report Specification
-
-## Purpose
-
-Prints the headline and writes `budget.md` so that a measured figure, an estimate and a decision are never confused with one another, and nothing that moved disappears silently.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: The headline separates measured from stated
 The console output SHALL open with a coverage warning if one applies, then present, in order: what was read; LEVELLED obligations if any; RECURRING with its state, range and stability; ONE-OFF decided items; IRREGULAR undecided items; LENDING; SAVINGS; INCOME with savings rate and surplus; KNOWN YEARLY from `known-annual.yml`; SET ASIDE totals; and a PLANNING FIGURE equal to recurring plus known yearly. The RECURRING state SHALL be MEASURED with three or more complete months, ESTIMATE with one or two, and UNKNOWN with none. An annual figure — RECURRING per year, INCOME per year, the PLANNING FIGURE — SHALL be printed only when MEASURED; otherwise the line SHALL say what is missing.
@@ -39,12 +33,7 @@ Every dollar set aside — transfers, lending, pass-throughs, unidentified — S
 - **WHEN** the state is MEASURED
 - **THEN** budget.md's final section lists each complete month with its recurring total, marks the median month or months, and shows the count behind every set-aside line
 
-### Requirement: Income is a median too
-INCOME SHALL be the median of complete-month identified income, annualised, with the observed range printed.
-
-#### Scenario: One bonus month
-- **WHEN** one month's income is three times the others
-- **THEN** the annual income figure is the median month times twelve and the range shows the bonus month
+## ADDED Requirements
 
 ### Requirement: The arithmetic behind the recurring figure is shown
 Under RECURRING the console SHALL list every complete month with its total and mark the month or months that form the median; under a LEVELLED line it SHALL list the transfers that were levelled with their dates.

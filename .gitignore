@@ -5,6 +5,9 @@ budget.md
 uncategorised.csv
 sample/budget.md
 sample/uncategorised.csv
+ledger.csv
+sample/ledger.csv
+.pytest_cache/
 
 # Your personal configuration: names, dates, amounts. Copy the
 # *.example.yml files to make yours; only the examples are tracked.

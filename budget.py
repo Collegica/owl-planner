@@ -244,43 +244,61 @@ def main(argv=None):
     review = []
     income_month = defaultdict(float)
     spend_txns = []   # only what survives as real spending
+    # every transaction, the kind it was judged to be, and the rule that judged
+    # it — written to ledger.csv, counted under SET ASIDE, asserted by the tests
+    ledger = []
+    def note(d, desc, out, kind, line='', rule=''):
+        ledger.append((d, desc, -out, kind, line, rule))   # signed like the bank
+    CARD_OUT = re.compile(r'credit\s*card|visa|master\s*card|amex', re.I)
+    CARD_IN = re.compile(r'payment.*(thank you|received)', re.I)
+    card_out = card_in = 0.0
     for d, desc, out, src in txns:
         if (d.isoformat(), round(abs(out), 2)) in passthrough:
-            passthrough_total += abs(out); continue
+            passthrough_total += abs(out); note(d, desc, out, 'passthrough', rule='pin'); continue
         hit = next((n for n, pat in cparty if pat.search(desc)), None)
         if hit:
-            if out > 0: lent_out += out; cparty_flow[hit][0] += out
-            else:       repaid_in += -out; cparty_flow[hit][1] += -out
+            if out > 0: lent_out += out; cparty_flow[hit][0] += out; note(d, desc, out, 'lending', rule=f'counterparty:{hit}')
+            else:       repaid_in += -out; cparty_flow[hit][1] += -out; note(d, desc, out, 'repayment', rule=f'counterparty:{hit}')
             continue
         if (d.isoformat(), round(out, 2)) in disb:
-            lent_out += out; matched.add((d.isoformat(), round(out, 2))); continue
+            lent_out += out; matched.add((d.isoformat(), round(out, 2))); note(d, desc, out, 'lending', rule='pin'); continue
         if (d.isoformat(), round(-out, 2)) in recv:
-            repaid_in += -out; matched.add((d.isoformat(), round(-out, 2))); continue
+            repaid_in += -out; matched.add((d.isoformat(), round(-out, 2))); note(d, desc, out, 'repayment', rule='pin'); continue
         if any(p.search(desc) for p in transfer_pats):
-            transfers_total += abs(out); continue
+            transfers_total += abs(out); note(d, desc, out, 'transfer', rule='transfer pattern')
+            if out > 0 and CARD_OUT.search(desc): card_out += out
+            if out < 0 and CARD_IN.search(desc): card_in += -out
+            continue
         if out < 0:
             if any(p.search(desc) for p in income_pats):
                 income_total += -out
                 income_month[f"{d.year}-{d.month:02d}"] += -out
-            continue                                  # other inflows: refunds
+                note(d, desc, out, 'income', rule='income pattern')
+            else:
+                note(d, desc, out, 'refund')          # other inflows: refunds
+            continue
         spend_txns.append((d, desc, out, src))
         line = dated_rules.get((d.isoformat(), round(out, 2)))
+        rule = 'dated pin' if line else ''
         if line is None:
             line = next((l for l, pats in cats if any(p.search(desc) for p in pats)), None)
+            rule = 'category pattern' if line else ''
         if line in savings_lines:
-            savings[line] += out; spend_txns.pop(); continue
+            savings[line] += out; spend_txns.pop(); note(d, desc, out, 'savings', line, rule); continue
         if line:
-            totals[line] += out
+            totals[line] += out; note(d, desc, out, 'spending', line, rule)
         else:
             line = next((v for pat, v in bank_cats if pat.search(desc)), None)
             if line:
-                totals[line] += out; from_bank[line] += out
+                totals[line] += out; from_bank[line] += out; note(d, desc, out, 'spending', line, 'bank category')
             elif (review_pats and out >= review_min
                   and any(p.search(desc) for p in review_pats)):
                 # only an outflow nothing else could name goes to review
-                spend_txns.pop(); review.append((d, desc, out))
+                spend_txns.pop(); review.append((d, desc, out)); note(d, desc, out, 'review', rule='review pattern')
             else:
-                uncategorised.append((d, desc, out, src))
+                uncategorised.append((d, desc, out, src)); note(d, desc, out, 'uncategorised')
+    kind_count = defaultdict(int)
+    for row in ledger: kind_count[row[3]] += 1
 
     lo, hi = min(t[0] for t in txns), max(t[0] for t in txns)
     span = (hi - lo).days + 1
@@ -300,15 +318,25 @@ def main(argv=None):
             if m == 13: y, m = y + 1, 1
         return out
     spend = sum(totals.values()) + sum(t[2] for t in uncategorised)
+    whole = complete_months(lo, hi)
+    # Three states, and the annual figure exists only in the first. Seven
+    # weeks printed in the same form as eight months is how a tool lies.
+    state = 'MEASURED' if len(whole) >= 3 else 'ESTIMATE' if whole else 'UNKNOWN'
 
     # ---- the budget table, in the intake form's structure -------------------
     lines = ["# Budget", "",
              f"Generated from {len(files)} statement file(s), {len(txns)} transactions, "
-             f"{min(t[0] for t in txns)} to {max(t[0] for t in txns)}.", ""]
+             f"{min(t[0] for t in txns)} to {max(t[0] for t in txns)}.", "",
+             {'MEASURED': f"**{state}** — {len(whole)} complete calendar months.",
+              'ESTIMATE': f"**{state}** — only {len(whole)} complete calendar month(s); "
+                          f"an annual figure needs three. Monthly figures below are averages over the window.",
+              'UNKNOWN': f"**{state}** — no complete calendar month in the window. "
+                         f"The tables below total what was seen; nothing here is a monthly rate."}[state],
+             ""]
     for key, grp in cat_defs['expenses'].items():
         rows = [(l, totals.get(l, 0.0)) for l in grp['lines'] if totals.get(l, 0.0)]
         if not rows: continue
-        lines += [f"## {grp['label']}", "", "| Line | Year | Month |", "|---|---:|---:|"]
+        lines += [f"## {grp['label']}", "", "| Line | In window | Per month |", "|---|---:|---:|"]
         lines += [f"| {l}{' ᵇ' if from_bank.get(l) else ''} | {v:,.0f} | {v/months:,.0f} |"
                   for l, v in rows]
         sub = sum(v for _, v in rows)
@@ -318,7 +346,7 @@ def main(argv=None):
         lines += ["## Uncategorised", "",
                   f"| Not yet matched | {u:,.0f} | {u/months:,.0f} |", "|---|---:|---:|", ""]
     lines += ["## Result", "",
-              f"| | Year | Month |", "|---|---:|---:|",
+              f"| | In window | Per month |", "|---|---:|---:|",
               f"| **Total expenses** | **{spend:,.0f}** | **{spend/months:,.0f}** |"]
     if income_total:
         lines.append(f"| Income seen | {income_total:,.0f} | {income_total/months:,.0f} |")
@@ -328,7 +356,7 @@ def main(argv=None):
     lines += ["", f"*Excluded as transfers between your own accounts: "
                   f"{transfers_total:,.0f}. Counting these would double every dollar "
                   f"you put on a credit card.*", ""]
-    Path(a.out).write_text("\n".join(lines) + "\n")
+    md_tail = lines   # the arithmetic section is appended once it exists
 
     if uncategorised:
         by_desc = defaultdict(float)
@@ -339,7 +367,6 @@ def main(argv=None):
                 w.writerow([f"{v:.2f}", desc])
 
     pct = 100 * (spend - sum(t[2] for t in uncategorised)) / spend if spend else 0
-    whole = complete_months(lo, hi)
 
     # A few months is enough to pin the RECURRING baseline; it is never enough
     # to infer the irregular items, and neither is a year — you either saw the
@@ -384,27 +411,51 @@ def main(argv=None):
         for m in whole: per_month[m] += total / len(whole)
     vals = sorted(per_month[m] for m in whole) or [0]
     median = vals[len(vals)//2] if len(vals) % 2 else (vals[len(vals)//2-1]+vals[len(vals)//2])/2
-
-    vals = sorted(per_month[m] for m in whole) or [0]
-    median = vals[len(vals)//2] if len(vals) % 2 else (vals[len(vals)//2-1]+vals[len(vals)//2])/2
     baseline = median * 12
+    # the month or months the median is made of — shown, not asserted
+    order = sorted(whole, key=lambda m: per_month[m])
+    median_months = ({order[len(order)//2]} if len(order) % 2 else
+                     {order[len(order)//2-1], order[len(order)//2]}) if order else set()
+    one_year = len({m[:4] for m in whole}) <= 1
+    def mon(m): return datetime.strptime(m, '%Y-%m').strftime('%b' if one_year else '%b %Y')
+    months_line = ' · '.join(f"{mon(m)} {per_month[m]:,.0f}{'*' if m in median_months else ''}" for m in whole)
 
     known_f = cfg('known-annual')
     known = {k: float(v) for k, v in (yaml.safe_load(known_f.read_text()) or {}).items()} \
             if known_f.exists() else {}
 
+    # Half the card payments leaving chequing never arrive on a card export:
+    # the card is missing, and every figure below would be wrong. Say so first.
+    if card_out and card_in < 0.5 * card_out:
+        print(f"  COVERAGE    ${card_out:,.0f} of credit-card payments leave these accounts, but card")
+        print(f"              exports show only ${card_in:,.0f} arriving. A card's export is missing —")
+        print(f"              without it the card's purchases are invisible and the figures below")
+        print(f"              are wrong. Export every card you pay from these accounts, then re-run.")
+        print()
     print(f"  files {len(files)}   transactions {len(txns)}   duplicates dropped {dropped}")
     print(f"  categorised {pct:.0f}% of spending")
     print(f"  observed {lo} to {hi}  ({len(whole)} complete month(s))")
     print()
-    for note, (total, n) in sorted(levels.items()):
-        print(f"  LEVELLED    ${total/len(whole):,.0f}/month — {note}")
+    for lnote, (total, n) in sorted(levels.items()):
+        print(f"  LEVELLED    ${total/len(whole):,.0f}/month — {lnote}")
         print(f"              ${total:,.0f} over {n} transfer(s) in {len(whole)} months — a transfer "
               f"cap can split the bigger ones, and a month-end")
         print(f"              payment often clears on the 1st; charged monthly instead of on "
               f"the dates they cleared")
+        legs = [(d, out) for d, desc, out, _ in sorted(spend_txns)
+                if out > 0 and levelled(desc) == lnote and f"{d.year}-{d.month:02d}" in whole]
+        print(f"              {' · '.join(f'{d.strftime('%b %-d')} {out:,.0f}' for d, out in legs)}")
         print()
-    print(f"  RECURRING   ${median:,.0f}/month   ->  ${baseline:,.0f}/year")
+    if state == 'MEASURED':
+        print(f"  RECURRING   ${median:,.0f}/month   ->  ${baseline:,.0f}/year   MEASURED over {len(whole)} complete months")
+    elif state == 'ESTIMATE':
+        print(f"  RECURRING   ${median:,.0f}/month   ESTIMATE — {len(whole)} complete month(s); an annual figure needs three")
+    else:
+        print(f"  RECURRING   UNKNOWN — no complete calendar month between {lo} and {hi}.")
+        print(f"              Export whole months; a month that starts or ends mid-way is not a month.")
+    if whole:
+        print(f"              {months_line}")
+        print(f"              (* the median{'s' if len(median_months) > 1 else ''}; complete months only)")
     if len(vals) > 1:
         hi_r = max(vals) / median if median else 0
         lo_r = min(vals) / median if median else 0
@@ -459,7 +510,10 @@ def main(argv=None):
         stot = sum(savings.values())
         smonth = stot / len(whole) if whole else 0
         print()
-        print(f"  SAVINGS     ${smonth:,.0f}/month  ->  ${smonth*12:,.0f}/year")
+        if state == 'MEASURED':
+            print(f"  SAVINGS     ${smonth:,.0f}/month  ->  ${smonth*12:,.0f}/year")
+        else:
+            print(f"  SAVINGS     ${smonth:,.0f}/month   {state} — no annual figure yet")
         for k, v in sorted(savings.items(), key=lambda x: -x[1]):
             print(f"              {k:<28s} ${v:>10,.0f} over the window")
         print(f"              not spending — it moves money, it does not consume it")
@@ -468,17 +522,21 @@ def main(argv=None):
         ivals = sorted(income_month[m] for m in whole) or [0]
         imed = ivals[len(ivals)//2] if len(ivals) % 2 else (ivals[len(ivals)//2-1]+ivals[len(ivals)//2])/2
         print()
-        print(f"  INCOME      ${imed:,.0f}/month (median)  ->  ${imed*12:,.0f}/year")
+        if state == 'MEASURED':
+            print(f"  INCOME      ${imed:,.0f}/month (median)  ->  ${imed*12:,.0f}/year")
+        else:
+            print(f"  INCOME      ${imed:,.0f}/month (median)   {state} — no annual figure yet")
         print(f"              ${income_total:,.0f} identified over the window; "
               f"months ranged ${min(ivals):,.0f}-${max(ivals):,.0f}")
         srate = (sum(savings.values()) / len(whole) * 12 / (imed * 12) * 100
                  if savings and whole and imed else 0)
         if srate: print(f"              savings rate {srate:.1f}% of income")
         gap = imed * 12 - baseline
-        print(f"              against ${baseline:,.0f} of recurring spending, "
-              f"a surplus of ${gap:,.0f}/year" if gap > 0 else
-              f"              against ${baseline:,.0f} of recurring spending, "
-              f"a SHORTFALL of ${-gap:,.0f}/year")
+        if state == 'MEASURED':
+            print(f"              against ${baseline:,.0f} of recurring spending, "
+                  f"a surplus of ${gap:,.0f}/year" if gap > 0 else
+                  f"              against ${baseline:,.0f} of recurring spending, "
+                  f"a SHORTFALL of ${-gap:,.0f}/year")
 
     if review:
         by = defaultdict(float)
@@ -492,25 +550,52 @@ def main(argv=None):
         print(f"              Tell me which are loans and I will add them to "
               f"loans.yml as dated disbursements.")
 
-    set_aside = [('lending (an asset, not spending)', lent_out),
-                 ('pass-throughs (in and straight out)', passthrough_total),
-                 ('awaiting identification', sum(v for _, _, v in review)),
-                 ('transfers between your own accounts', transfers_total),
-                 ('still unidentified', sum(t[2] for t in uncategorised))]
-    set_aside = [(k, v) for k, v in set_aside if v]
+    set_aside = [('lending (an asset, not spending)', lent_out, kind_count['lending']),
+                 ('pass-throughs (in and straight out)', passthrough_total, kind_count['passthrough']),
+                 ('awaiting identification', sum(v for _, _, v in review), kind_count['review']),
+                 ('transfers between your own accounts', transfers_total, kind_count['transfer']),
+                 ('still unidentified', sum(t[2] for t in uncategorised), kind_count['uncategorised'])]
+    set_aside = [(k, v, n) for k, v, n in set_aside if v]
     if set_aside:
         print()
         print(f"  SET ASIDE   money that moved but was not spending:")
-        for k, v in set_aside:
-            print(f"              {k:<38s} ${v:>10,.0f}")
+        for k, v, n in set_aside:
+            print(f"              {k:<38s} ${v:>10,.0f}   {n:>3} transaction{'s' if n != 1 else ''}")
         print(f"              {'':38s} {'-'*11}")
-        print(f"              {'total held out':<38s} ${sum(v for _, v in set_aside):>10,.0f}")
+        print(f"              {'total held out':<38s} ${sum(v for _, v, _ in set_aside):>10,.0f}")
 
     total = baseline + sum(known.values())
     print()
-    print(f"  PLANNING FIGURE  ${total:,.0f}/year  =  recurring ${baseline:,.0f}"
-          + (f" + known yearly ${sum(known.values()):,.0f}" if known else ""))
-    print(f"  Add any irregular item you decide is yearly to known-annual.yml and re-run.")
+    if state == 'MEASURED':
+        print(f"  PLANNING FIGURE  ${total:,.0f}/year  =  recurring ${baseline:,.0f}"
+              + (f" + known yearly ${sum(known.values()):,.0f}" if known else ""))
+        print(f"  Add any irregular item you decide is yearly to known-annual.yml and re-run.")
+    elif state == 'ESTIMATE':
+        print(f"  PLANNING FIGURE  not yet — an annual figure needs three complete months; "
+              f"{len(whole)} observed.")
+        print(f"  What can be said: about ${median:,.0f}/month recurring so far, from what was categorised.")
+    else:
+        print(f"  PLANNING FIGURE  not yet — no complete month observed. Export whole months and re-run.")
+
+    # ---- how the number was made, appended to budget.md ------------------
+    md = md_tail + ["## How the number was made", ""]
+    if whole:
+        md += [f"Recurring is the median of {len(whole)} complete calendar months, "
+               f"large one-time items held out{', levelled obligations charged monthly' if levels else ''}:", "",
+               "| Month | Recurring | |", "|---|---:|---|"]
+        md += [f"| {m} | {per_month[m]:,.0f} | {'median' if m in median_months else ''} |" for m in whole]
+        md += ["", f"Median {median:,.0f} per month" + (f"; {baseline:,.0f} per year." if state == 'MEASURED' else ".")]
+    else:
+        md += ["No complete calendar month was observed, so there is no recurring figure."]
+    if set_aside:
+        md += ["", "Set aside, not spending:", "", "| | Amount | Transactions |", "|---|---:|---:|"]
+        md += [f"| {k} | {v:,.0f} | {n} |" for k, v, n in set_aside]
+    md += ["", f"Every transaction, its kind and the rule that decided it: `ledger.csv`.", ""]
+    Path(a.out).write_text("\n".join(md) + "\n")
+    with open(Path(a.out).parent / 'ledger.csv', 'w', newline='') as fh:
+        w = csv.writer(fh); w.writerow(['date', 'description', 'amount', 'kind', 'line', 'rule'])
+        for d, desc, amt, kind, line, rule in sorted(ledger):
+            w.writerow([d.isoformat(), desc, f"{amt:.2f}", kind, line, rule])
     print(f"  wrote {a.out}")
     if uncategorised:
         print(f"  wrote uncategorised.csv — {len(by_desc)} descriptions, "

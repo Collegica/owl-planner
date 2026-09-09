@@ -2,10 +2,10 @@
 id: IDEA-0016
 lens: canadian-planners
 capability: money-classification
-status: seed
+status: promoted
 effort: M
 value: high
-promoted_to: 
+promoted_to: openspec/changes/trust-the-number
 ---
 
 # Golden tests for the classification order, on an invented CSV

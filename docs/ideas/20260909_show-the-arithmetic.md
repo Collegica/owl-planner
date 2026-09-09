@@ -2,10 +2,10 @@
 id: IDEA-0009
 lens: canadian-planners
 capability: budget-report
-status: seed
+status: promoted
 effort: S
 value: high
-promoted_to: 
+promoted_to: openspec/changes/trust-the-number
 ---
 
 # The report shows the months behind every headline number
