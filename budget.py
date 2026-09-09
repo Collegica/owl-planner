@@ -32,6 +32,17 @@ CREDIT_H = ('credit', 'deposit', 'deposits', 'credits', 'crédit', 'dépôt',
 DATE_FORMATS = ('%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%d-%b-%Y', '%b %d, %Y',
                 '%Y/%m/%d', '%d.%m.%Y', '%m/%d/%y', '%d/%m/%y')
 
+# The header ledger.csv is written with. A file that carries it exactly is an
+# annotated ledger: someone (or their AI) has filled in kind and line, and the
+# rows are labels for transactions the statements already hold, never new ones.
+LEDGER_HEADER = ('date', 'description', 'amount', 'kind', 'line', 'rule')
+# The kinds a label may name, and the ones the tool writes for a row it could
+# not label itself. The second set is left in place when a ledger is handed
+# back with only some rows filled in, so it carries no label and is not an error.
+LABEL_KINDS = {'transfer', 'income', 'savings', 'spending', 'lending', 'repayment', 'passthrough'}
+UNLABELLED_KINDS = {'refund', 'review', 'uncategorised'}
+MONEY_OUT_KINDS, MONEY_IN_KINDS = {'spending', 'savings', 'lending'}, {'income', 'repayment'}
+
 
 def pick_delimiter(text: str) -> str:
     """Most consistent delimiter across the first rows. csv.Sniffer gets this
@@ -98,18 +109,26 @@ def norm(h: str) -> str:
     return re.sub(r'\s+', ' ', (h or '').strip().lower())
 
 
+def decode(raw: bytes) -> str | None:
+    """Banks export in whichever encoding their vendor chose; try the usual ones."""
+    for enc in ('utf-8-sig', 'utf-8', 'cp1252', 'latin-1'):
+        try: return raw.decode(enc)
+        except UnicodeDecodeError: continue
+    return None
+
+
 def read_csv(path: Path, forced_order=None):
     """Yield (date, description, amount) with amount POSITIVE for money out."""
-    raw = path.read_bytes()
-    for enc in ('utf-8-sig', 'utf-8', 'cp1252', 'latin-1'):
-        try: text = raw.decode(enc); break
-        except UnicodeDecodeError: continue
-    else:
+    text = decode(path.read_bytes())
+    if text is None:
         print(f"  ! {path.name}: cannot decode", file=sys.stderr); return
 
     rows = list(csv.reader(io.StringIO(text), delimiter=pick_delimiter(text)))
     if not rows: return
     header = [norm(c) for c in rows[0]]
+    # an annotated ledger has a date, a description and an amount column too,
+    # and would parse as a statement; recognise it before inferring anything
+    if header == list(LEDGER_HEADER): return
     has_header = any(h in DATE_H for h in header) or any(
         h in DESC_H or h in AMOUNT_H or h in DEBIT_H for h in header)
 
@@ -162,6 +181,67 @@ def read_csv(path: Path, forced_order=None):
         yield d, desc, out
 
 
+def read_annotations(path: Path):
+    """The rows of an annotated ledger as dicts keyed by the ledger header, or
+    None when the file is not one. Recognition is by the exact header and
+    nothing else, so a statement is never taken for annotations."""
+    text = decode(path.read_bytes())
+    if text is None: return None
+    rows = list(csv.reader(io.StringIO(text), delimiter=pick_delimiter(text)))
+    if not rows or [norm(c) for c in rows[0]] != list(LEDGER_HEADER): return None
+    width = len(LEDGER_HEADER)
+    return [dict(zip(LEDGER_HEADER, (r + [''] * width)[:width]))
+            for r in rows[1:] if any(c.strip() for c in r)]
+
+
+def verify_annotations(rows, txns, cat_defs, year=None):
+    """Check every annotated row against the transactions the statements gave
+    and against categories.yml. Returns (labels, offenders): labels keyed by
+    (date, description, amount signed like the bank) -> (kind, line), and one
+    printable line per row that cannot be applied. A single offender means the
+    caller applies none of the labels — a shifted amount or a dropped row is
+    exactly what this pass exists to catch, and partial acceptance would hide it.
+
+    The match is date, description with runs of whitespace collapsed (a
+    spreadsheet round trip changes nothing else), and amount to the cent."""
+    keys = {(d, desc, round(-out, 2)) for d, desc, out, _ in txns}
+    by_row = defaultdict(list)   # (date, description) -> amounts, to say what differs
+    for d, desc, out, _ in txns: by_row[(d, desc)].append(-out)
+    savings_lines = set(cat_defs.get('savings', {}).get('lines', []))
+    all_lines = savings_lines | {l for g in cat_defs.get('expenses', {}).values()
+                                 for l in g.get('lines', [])}
+    labels, offenders = {}, []
+    for r in rows:
+        d, amt = parse_date(r['date']), parse_amount(r['amount'])
+        desc = re.sub(r'\s+', ' ', r['description']).strip()
+        kind, line = r['kind'].strip(), r['line'].strip()
+        shown = f"{r['date'].strip()}  {desc}  {r['amount'].strip()}"
+        def refuse(why): offenders.append(f"{shown}  — {why}")
+        if d is None or amt is None:
+            refuse("date or amount not readable"); continue
+        if year and d.year != year: continue   # outside the window asked for, like any statement row
+        amt = round(amt, 2)
+        if (d, desc, amt) not in keys:
+            others = by_row.get((d, desc))
+            refuse(f"amount differs from the statement's {others[0]:.2f}" if others
+                   else "no matching transaction in the statements"); continue
+        if kind in UNLABELLED_KINDS: continue   # the tool's own verdict, handed back unchanged
+        if kind not in LABEL_KINDS:
+            refuse(f"kind '{kind}' is not one of {', '.join(sorted(LABEL_KINDS))}"); continue
+        if kind == 'spending' and not line:
+            refuse("spending needs a line from categories.yml"); continue
+        if kind == 'spending' and line not in all_lines:
+            refuse(f"line '{line}' is not in categories.yml"); continue
+        if kind == 'savings' and line not in savings_lines:
+            refuse("savings needs a line listed under savings in categories.yml"); continue
+        if kind in MONEY_OUT_KINDS and amt > 0:
+            refuse(f"'{kind}' is money out, but this row is money in"); continue
+        if kind in MONEY_IN_KINDS and amt < 0:
+            refuse(f"'{kind}' is money in, but this row is money out"); continue
+        labels[(d, desc, amt)] = (kind, line)
+    return labels, offenders
+
+
 def compile_rules(rules):
     cats = [(line, [re.compile(p, re.I) for p in pats])
             for line, pats in rules.get('categories', {}).items()]
@@ -212,6 +292,16 @@ def main(argv=None):
     files = sorted(Path(a.dir).glob('*.csv'))
     if not files:
         sys.exit(f"No CSVs in {a.dir}. Export them from online banking first.")
+    # an annotated ledger labels transactions; it never supplies them, so it
+    # is set apart here and the statement files are what remain
+    annotated = {}
+    for f in files:
+        rows = read_annotations(f)
+        if rows is not None: annotated[f] = rows
+    files = [f for f in files if f not in annotated]
+    if not files:
+        sys.exit(f"{', '.join(f.name for f in annotated)}: an annotated ledger labels transactions, "
+                 f"it does not add them. Annotations need the original exports beside them.")
 
     seen, txns, dropped = set(), [], 0
     for f in files:
@@ -223,6 +313,20 @@ def main(argv=None):
             txns.append((d, desc, out, f.name))
 
     if not txns: sys.exit("No transactions parsed. Check --year and the CSV format.")
+
+    # Verify each annotated file against the de-duplicated transactions. All or
+    # nothing per file: one bad row refuses it and the run goes on without it.
+    labels, applied = {}, {}   # applied: file name -> rows whose label was used
+    for f, rows in annotated.items():
+        found, offenders = verify_annotations(rows, txns, cat_defs, a.year)
+        if offenders:
+            print(f"  ! {f.name}: refused — {len(offenders)} of {len(rows)} rows cannot be "
+                  f"applied, so none were:", file=sys.stderr)
+            for line in offenders[:10]: print(f"      {line}", file=sys.stderr)
+            if len(offenders) > 10: print(f"      and {len(offenders) - 10} more", file=sys.stderr)
+            continue
+        labels.update({k: (kind, line, f.name) for k, (kind, line) in found.items()})
+        applied[f.name] = 0
 
     totals, uncategorised, from_bank = defaultdict(float), [], defaultdict(float)
     savings_lines = set(cat_defs.get('savings', {}).get('lines', []))
@@ -252,6 +356,32 @@ def main(argv=None):
     CARD_OUT = re.compile(r'credit\s*card|visa|master\s*card|amex', re.I)
     CARD_IN = re.compile(r'payment.*(thank you|received)', re.I)
     card_out = card_in = 0.0
+    def apply_label(d, desc, out, src):
+        """A verified annotated label, applied as the loop's own branch would
+        apply it, with rule 'annotated'. Sits after the date-and-amount pins
+        and before every pattern; a dated pin on the same transaction still
+        wins, so the label is left for the pin to overrule further down."""
+        nonlocal passthrough_total, lent_out, repaid_in, transfers_total, income_total, card_out, card_in
+        hit = labels.get((d, desc, round(-out, 2)))
+        if hit is None or (d.isoformat(), round(out, 2)) in dated_rules: return False
+        kind, line, origin = hit
+        if kind == 'passthrough': passthrough_total += abs(out); note(d, desc, out, kind, rule='annotated')
+        elif kind == 'lending':   lent_out += out; note(d, desc, out, kind, rule='annotated')
+        elif kind == 'repayment': repaid_in += -out; note(d, desc, out, kind, rule='annotated')
+        elif kind == 'transfer':
+            transfers_total += abs(out); note(d, desc, out, kind, rule='annotated')
+            if out > 0 and CARD_OUT.search(desc): card_out += out
+            if out < 0 and CARD_IN.search(desc): card_in += -out
+        elif kind == 'income':
+            income_total += -out; income_month[f"{d.year}-{d.month:02d}"] += -out
+            note(d, desc, out, kind, rule='annotated')
+        elif line in savings_lines:   # the line decides, as it does for a pattern
+            savings[line] += out; note(d, desc, out, 'savings', line, 'annotated')
+        else:
+            spend_txns.append((d, desc, out, src)); totals[line] += out
+            note(d, desc, out, 'spending', line, 'annotated')
+        applied[origin] += 1
+        return True
     for d, desc, out, src in txns:
         if (d.isoformat(), round(abs(out), 2)) in passthrough:
             passthrough_total += abs(out); note(d, desc, out, 'passthrough', rule='pin'); continue
@@ -264,6 +394,7 @@ def main(argv=None):
             lent_out += out; matched.add((d.isoformat(), round(out, 2))); note(d, desc, out, 'lending', rule='pin'); continue
         if (d.isoformat(), round(-out, 2)) in recv:
             repaid_in += -out; matched.add((d.isoformat(), round(-out, 2))); note(d, desc, out, 'repayment', rule='pin'); continue
+        if labels and apply_label(d, desc, out, src): continue
         if any(p.search(desc) for p in transfer_pats):
             transfers_total += abs(out); note(d, desc, out, 'transfer', rule='transfer pattern')
             if out > 0 and CARD_OUT.search(desc): card_out += out
@@ -433,6 +564,8 @@ def main(argv=None):
         print(f"              are wrong. Export every card you pay from these accounts, then re-run.")
         print()
     print(f"  files {len(files)}   transactions {len(txns)}   duplicates dropped {dropped}")
+    for name, n in applied.items():
+        print(f"  annotated   {name} — {n} row{'s' if n != 1 else ''} applied")
     print(f"  categorised {pct:.0f}% of spending")
     print(f"  observed {lo} to {hi}  ({len(whole)} complete month(s))")
     print()
