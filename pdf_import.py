@@ -8,9 +8,14 @@ is reported, never silently included. A budget built from a parse you did not
 verify is worse than no budget.
 
     pixi run pdf-import -- --dir "~/Downloads/OWL/Bank statements"
+
+The text comes from poppler's `pdftotext -layout` on the command line, and
+from pdf_layout.py in the browser, where pdf.js supplies the positioned
+fragments. Both feed the same extractors and the same reconciliation gate:
+`extract()` is the seam, `main()` and `convert()` the two callers.
 """
 from __future__ import annotations
-import argparse, csv, re, subprocess, sys
+import argparse, csv, io, json, re, subprocess, sys
 from datetime import date
 from pathlib import Path
 
@@ -32,24 +37,46 @@ def money(s: str) -> float:
     return -v if neg else v
 
 
-def to_text(pdf: Path) -> str:
+def text_from_pdf(pdf: Path) -> str:
+    """Layout text from poppler; the command-line path."""
     return subprocess.run(['pdftotext', '-layout', str(pdf), '-'],
                           capture_output=True, text=True).stdout
 
 
-def stmt_year(pdf: Path) -> int:
-    m = re.search(r'(20\d{2})', pdf.name)
+to_text = text_from_pdf   # the older name, kept for anything that used it
+
+
+def text_from_items(path: Path) -> str:
+    """Layout text reconstructed from a JSON dump of pdf.js text items — the
+    browser's path, runnable here to debug a statement that reconciles with
+    poppler and not in the page."""
+    from pdf_layout import layout
+    return layout(json.loads(Path(path).read_text()))
+
+
+def _basename(name) -> str:
+    return Path(str(name)).name if name else ''
+
+
+def stmt_year(name, text: str = '') -> int:
+    """The closing year: from the file name when it carries one, else from
+    the first "Month d, yyyy" the statement prints, else this year."""
+    m = re.search(r'(20\d{2})', _basename(name))
+    if m: return int(m.group(1))
+    m = re.search(r'(?:January|February|March|April|May|June|July|August|September|'
+                  r'October|November|December)\s+\d{1,2},?\s+(20\d{2})', text)
     return int(m.group(1)) if m else date.today().year
 
 
-def stmt_end_month(pdf: Path, text: str) -> int:
+def stmt_end_month(name, text: str) -> int:
     """The month the statement closes. A statement dated January carries
     December transactions from the year before; without this they land twelve
     months in the future and stretch the observed period across a whole year."""
-    m = re.search(r'20\d{2}-(\d{2})-\d{2}', pdf.name)
+    base = _basename(name)
+    m = re.search(r'20\d{2}-(\d{2})-\d{2}', base)
     if m: return int(m.group(1))
     m = re.search(r'(January|February|March|April|May|June|July|August|September|'
-                  r'October|November|December)\s+20\d{2}', pdf.name)
+                  r'October|November|December)\s+20\d{2}', base)
     if m: return MONTHS[m.group(1)[:3]]
     return stmt_month(text) or 12
 
@@ -227,6 +254,89 @@ EXTRACTORS = {'CIBC': (cibc, cibc_expected),
               'RBC': (rbc, rbc_expected),
               'ScotiaLine': (scotia_line, scotia_line_expected)}
 
+# What the statement's own text says about which bank printed it, for a file
+# whose name does not. The command line matches on the name only, as it
+# always has; the browser tries the name first and then these.
+TEXT_MARKERS = {'ScotiaLine': r'ScotiaLine',
+                'Ultimate': r'\bUltimate\b',
+                'CIBC': r'\bCIBC\b',
+                'RBC': r'\bRBC\b|Royal Bank'}
+
+
+def detect_bank(name, text: str = '') -> str | None:
+    low = _basename(name).lower()
+    for bank in EXTRACTORS:
+        if bank.lower() in low: return bank
+    for bank, marker in TEXT_MARKERS.items():
+        if re.search(marker, text): return bank
+    return None
+
+
+def extract(text: str, bank: str, name='') -> dict:
+    """Run one bank's extractor on layout text and reconcile the rows against
+    the totals the statement prints. The seam between text acquisition and
+    parsing: poppler and the browser reconstruction both arrive here.
+
+    Returns rows, whether they reconcile, the extracted and stated figures
+    that decided it, and a one-word reason when they do not. The stated
+    figure is the sum of charges (or withdrawals); deposits are checked too
+    where the statement prints them, and reported when they are what failed."""
+    parse, expected = EXTRACTORS[bank]
+    END_MONTH[0] = stmt_end_month(name, text)
+    rows = parse(text, stmt_year(name, text))
+    exp = expected(text)
+    charges = sum(v for _, _, v in rows if v > 0)
+    target = exp.get('charges')
+    if target is None and exp.get('withdrawals') is not None:
+        target = exp['withdrawals']
+    r = {'bank': bank, 'rows': rows, 'reconciled': False,
+         'extracted': charges, 'stated': target, 'why': ''}
+    if target is None:
+        r['why'] = 'no summary found'; return r
+    dep_target = exp.get('deposits')
+    dep = -sum(v for _, _, v in rows if v < 0)
+    dep_ok = dep_target is None or abs(dep - dep_target) <= 0.02
+    if abs(charges - target) <= 0.02 and dep_ok:
+        r['reconciled'] = True
+    elif not dep_ok:
+        r.update(why='deposits mismatch', extracted=dep, stated=dep_target)
+    else:
+        r['why'] = 'mismatch'
+    return r
+
+
+def rows_to_csv(rows) -> str:
+    """The normalised shape budget.py reads: Date, Description, Amount, with
+    money out negative."""
+    buf = io.StringIO()
+    w = csv.writer(buf, lineterminator='\n'); w.writerow(['Date', 'Description', 'Amount'])
+    for d, desc, v in sorted(rows):
+        w.writerow([d.isoformat(), desc, f"{-v:.2f}"])
+    return buf.getvalue()
+
+
+def convert(name: str, pages) -> dict:
+    """The browser's path: pdf.js text items in, a CSV or a refusal out.
+    Nothing is written; the page decides what to do with the result."""
+    from pdf_layout import layout
+    text = layout(pages)
+    bank = detect_bank(name, text)
+    if bank is None:
+        return {'name': name, 'bank': None, 'csv': '', 'reconciled': False,
+                'extracted': None, 'stated': None, 'why': 'unknown layout',
+                'banks': list(EXTRACTORS)}
+    r = extract(text, bank, name)
+    return {'name': name, 'bank': bank, 'reconciled': r['reconciled'],
+            'csv': rows_to_csv(r['rows']) if r['reconciled'] else '',
+            'extracted': r['extracted'], 'stated': r['stated'], 'why': r['why'],
+            'transactions': len(r['rows'])}
+
+
+def convert_json(name: str, pages_json: str) -> str:
+    """convert() over JSON in both directions, which is the cheapest way
+    across the Pyodide boundary."""
+    return json.dumps(convert(name, json.loads(pages_json)))
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -236,31 +346,20 @@ def main():
     root = Path(a.dir).expanduser()
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
 
-    for bank, (extract, expected) in EXTRACTORS.items():
-        pdfs = sorted(p for p in root.rglob('*.pdf') if bank.lower() in str(p).lower())
+    for bank in EXTRACTORS:
+        # a .json next to the PDFs is a dump of pdf.js items, read through
+        # the browser's reconstruction instead of poppler
+        pdfs = sorted(p for p in root.rglob('*')
+                      if p.suffix.lower() in ('.pdf', '.json') and bank.lower() in str(p).lower())
         if not pdfs: print(f"  {bank}: no PDFs found"); continue
         all_rows, ok, bad = [], 0, []
         for pdf in pdfs:
-            text = to_text(pdf)
-            END_MONTH[0] = stmt_end_month(pdf, text)
-            rows = extract(text, stmt_year(pdf))
-            exp = expected(text)
-            charges = sum(v for _, _, v in rows if v > 0)
-            target = exp.get('charges')
-            if target is None and exp.get('withdrawals') is not None:
-                target = exp['withdrawals']
-            if target is None:
-                bad.append((pdf.name, 'no summary found', None, None)); continue
-            delta = charges - target
-            dep_target = exp.get('deposits')
-            dep = -sum(v for _, _, v in rows if v < 0)
-            dep_ok = dep_target is None or abs(dep - dep_target) <= 0.02
-            if abs(delta) <= 0.02 and dep_ok:
-                ok += 1; all_rows += rows
-            elif not dep_ok:
-                bad.append((pdf.name, 'deposits mismatch', dep, dep_target))
+            text = text_from_items(pdf) if pdf.suffix.lower() == '.json' else text_from_pdf(pdf)
+            r = extract(text, bank, pdf)
+            if r['reconciled']:
+                ok += 1; all_rows += r['rows']
             else:
-                bad.append((pdf.name, 'mismatch', charges, target))
+                bad.append((pdf.name, r['why'], r['extracted'] if r['stated'] is not None else None, r['stated']))
         print(f"\n  {bank}: {len(pdfs)} statements, {ok} reconciled, {len(bad)} failed")
         for name, why, got, want in bad[:8]:
             extra = f"  parsed {got:,.2f} vs stated {want:,.2f}" if got is not None else ""
