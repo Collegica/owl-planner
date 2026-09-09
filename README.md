@@ -241,6 +241,16 @@ and what they actually earn. The tool has to ask neutrally and record the answer
 without comment. That is a design requirement, not a courtesy — it is the
 difference between a tool people finish setting up and one they close.
 
+## Changing it
+
+Behaviour is specified before it is built. `openspec/specs/` describes what the
+tool does today, one file per capability; `openspec/changes/` holds proposals
+that have not landed. To propose something, run `openspec new change <name>`
+(or `/opsx:propose` in Claude Code) and fill in the proposal, spec delta, design
+and tasks; `openspec validate --all --strict` checks the lot. The first open
+change, `first-run-interview`, is the tool asking its own questions instead of
+leaving you a CSV.
+
 ## Then what
 
 The tool is written up — the file formats, an illustrative run, the core of

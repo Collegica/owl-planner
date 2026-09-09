@@ -1,0 +1,49 @@
+schema: spec-driven
+
+context: |
+  OWL Planner: a local, private tool that turns bank statement exports into
+  the annual spending figure a financial plan starts with. Part of the OWL
+  (Optimal Wealth and Longevity) framework at collegica.org.
+
+  Tech: Python >= 3.11 standard library plus PyYAML; poppler's pdftotext for
+  PDF statements. Managed with pixi (`pixi run budget`, `pixi run pdf-import`).
+  Two source files: budget.py (engine, reporting) and pdf_import.py
+  (per-bank extractors). No database, no network, no ML.
+
+  Domain: only one of six kinds of money movement is spending. Transfers
+  between own accounts, lending and its repayment, savings contributions,
+  pass-throughs and income are each set aside and reported, never counted as
+  spending. Recurring spending is the median complete month; large items
+  that do not repeat are decisions, not averages.
+
+  Conventions that are not negotiable:
+  - Nothing about any real person is ever committed: no names, dates,
+    amounts or income. rules.yml, loans.yml, known-annual.yml and
+    statements/ are gitignored; only *.example.yml with invented values is
+    tracked. Illustrative figures in docs are invented.
+  - An importer reconciles against a total the source itself asserts, or it
+    refuses. A parsing bug and a real transaction look identical otherwise.
+  - A measurement is labelled as one. Never print an extrapolation in the
+    same form as a measured figure. Prefer refusing to guessing.
+  - The code is generic; everything personal is data in YAML.
+  - Plain prose in comments and docs, British spelling, no marketing.
+
+rules:
+  proposal:
+    - Include a "Non-goals" line if the change could be read as broader than intended
+    - Say how the change keeps personal data out of the repository if it touches config, docs or output
+  specs:
+    - Scenarios must be checkable by running the tool on a small invented CSV
+    - Use invented merchant names and amounts in scenarios, never real ones
+  tasks:
+    - Every task that changes output names the command to run and what the output must show
+    - Include a task that re-runs the tool on the sample and confirms the headline figures are unchanged unless the change intends to move them
+
+operations:
+  apply:
+    guidance:
+      - Run `pixi run budget` before and after; report any change in RECURRING, categorised %, or the set-aside totals
+      - Never read or print the contents of statements/ or the personal yml files into the conversation beyond what is needed
+  archive:
+    guidance:
+      - Confirm `git status --ignored` still lists the personal files as ignored before archiving
