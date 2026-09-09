@@ -40,7 +40,7 @@ SHA256 = {
 # The runtime files the page needs — nothing else from the tarball.
 RUNTIME = ['pyodide.mjs', 'pyodide.asm.mjs', 'pyodide.asm.wasm',
            'python_stdlib.zip', 'pyodide-lock.json']
-ENGINE = ['budget.py', 'categories.yml', 'rules.example.yml',
+ENGINE = ['budget.py', 'rules_merge.py', 'categories.yml', 'rules.example.yml',
           'loans.example.yml', 'known-annual.example.yml']
 
 

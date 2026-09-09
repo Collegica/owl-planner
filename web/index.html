@@ -79,6 +79,7 @@
     <button role="tab" aria-selected="true" data-pane="console">Headline</button>
     <button role="tab" aria-selected="false" data-pane="budget">budget.md</button>
     <button role="tab" aria-selected="false" data-pane="unc">Not yet categorised</button>
+    <button role="tab" aria-selected="false" data-pane="ask">Ask your AI</button>
   </div>
   <div id="pane-console"><pre class="console" id="console">Drop statements and press <b>Build the budget</b>.
 
@@ -92,6 +93,20 @@ so nothing disappears silently.</pre></div>
   <div id="pane-unc" hidden>
     <p class="hint">Largest first — the order worth working in. Add a pattern under <code>categories</code> in rules.yml and run again.</p>
     <div id="unc"><p class="empty">Nothing yet.</p></div>
+  </div>
+  <div id="pane-ask" hidden>
+    <p class="hint">The questions the tool cannot answer, written for an AI of your choosing: merchant names, how often each appeared and a rough size band — no amount, no date, no account fragment. Copy it into the AI, then paste its answer below.</p>
+    <div class="row" style="margin:0 0 .5rem"><span class="spacer"></span><button class="btn small" id="copyPack" type="button" disabled>Copy</button> <button class="btn small" id="dlPack" type="button" disabled>Download ask-your-ai.md</button></div>
+    <pre class="pack" id="pack">Nothing yet.</pre>
+    <h3 class="sub">Paste rules from your AI</h3>
+    <p class="hint">Checked before anything changes: valid YAML, budget lines that exist, patterns that compile. What it would add is listed first; nothing already in rules.yml is removed.</p>
+    <textarea class="yml short" id="fragment" spellcheck="false" placeholder="categories:&#10;  Dentist: ['newtown dental']"></textarea>
+    <div class="row">
+      <button class="btn small" id="previewFrag" type="button">Preview</button>
+      <button class="btn small primary" id="mergeFrag" type="button" disabled>Add to rules.yml and re-run</button>
+    </div>
+    <div id="fragNotice" class="notice" hidden></div>
+    <ul class="adds" id="fragPreview"></ul>
   </div>
 </div>
 </div>

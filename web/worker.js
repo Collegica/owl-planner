@@ -17,7 +17,7 @@ async function boot() {
   post('status', { phase: 'start', text: 'Starting Python…' });
 
   // the engine and its example files, exactly as shipped
-  const app = ['budget.py', 'categories.yml', 'rules.example.yml', 'loans.example.yml', 'known-annual.example.yml'];
+  const app = ['budget.py', 'rules_merge.py', 'categories.yml', 'rules.example.yml', 'loans.example.yml', 'known-annual.example.yml'];
   pyodide.FS.mkdirTree('/app');
   for (const name of app) {
     const r = await fetch(`./app/${name}`);
@@ -50,6 +50,7 @@ async function run({ files, config, year }) {
   try { pyodide.FS.unlink(`${WORK}/budget.md`); } catch { /* first run */ }
   try { pyodide.FS.unlink(`${WORK}/uncategorised.csv`); } catch { /* first run */ }
   try { pyodide.FS.unlink(`${WORK}/ledger.csv`); } catch { /* first run */ }
+  try { pyodide.FS.unlink(`${WORK}/ask-your-ai.md`); } catch { /* first run */ }
 
   const argv = ['--dir', `${WORK}/statements`, '--config', WORK, '--out', `${WORK}/budget.md`];
   if (year) argv.push('--year', String(year));
@@ -64,13 +65,40 @@ budget.run(argv)
     budget: readIfExists(`${WORK}/budget.md`),
     uncategorised: readIfExists(`${WORK}/uncategorised.csv`),
     ledger: readIfExists(`${WORK}/ledger.csv`),
+    pack: readIfExists(`${WORK}/ask-your-ai.md`),
   });
+}
+
+// A rules.yml fragment from the user's AI: checked and, if asked, merged by
+// the same rules_merge.py the CLI uses. A refusal comes back as a message in
+// the result, not as a worker error — it is the expected outcome for a bad
+// fragment, and the page shows it beside the paste box.
+async function judge({ rules, fragment }, apply) {
+  pyodide.globals.set('rules_text', rules);
+  pyodide.globals.set('fragment', fragment);
+  pyodide.globals.set('apply', apply);
+  // runPythonAsync hands back the last top-level expression, so the verdict
+  // is assigned inside the try and stands alone on the final line
+  const out = await pyodide.runPythonAsync(`
+import json, rules_merge
+try:
+    entries = rules_merge.preview(rules_text, fragment)
+    unsure = rules_merge.parse(fragment)['unsure']
+    verdict = json.dumps({'entries': entries, 'unsure': unsure,
+                          'rules': rules_merge.merge(rules_text, fragment) if apply else None})
+except rules_merge.MergeError as e:
+    verdict = json.dumps({'error': str(e)})
+verdict
+`);
+  return JSON.parse(out);
 }
 
 self.onmessage = async (e) => {
   const m = e.data;
   try {
     if (m.type === 'run') await run(m);
+    else if (m.type === 'preview') post('preview', await judge(m, false));
+    else if (m.type === 'merge') post('merged', await judge(m, true));
   } catch (err) {
     post('error', { text: String(err && err.message ? err.message : err) });
   }

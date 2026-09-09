@@ -91,6 +91,22 @@ counterparties, and the dates and amounts of things only you can classify.
 Copy `rules.example.yml` to start it. Keep it under your own version control
 if you like; it should never land in a shared repository.
 
+Or let an AI write the patterns. Every run also writes `ask-your-ai.md`: the
+merchant names it could not place, how often each appeared and a rough size
+band — no amounts, no dates, no account fragments, nobody's name — under a
+prompt that asks for a `rules.yml` fragment and tells the AI to answer
+`unsure` rather than guess. Paste the file into whichever AI you use, save
+the answer, and
+
+```bash
+pixi run budget -- --merge answer.yml
+```
+
+appends it to your `rules.yml` and runs again. Nothing already in the file
+is touched, comments included, and a fragment that names a line not in
+`categories.yml` is refused with the name. The browser page has the same
+thing as its fourth tab, with a paste box for the answer.
+
 ## How much data you need
 
 **A few months is enough for the part that matters.** Recurring spending —
