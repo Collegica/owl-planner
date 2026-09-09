@@ -91,6 +91,21 @@ counterparties, and the dates and amounts of things only you can classify.
 Copy `rules.example.yml` to start it. Keep it under your own version control
 if you like; it should never land in a shared repository.
 
+**Or annotate the ledger.** `ledger.csv` lists every transaction with its
+`kind` and `line`. Fill those two columns in — by hand, in a spreadsheet, or by
+handing the file to an AI — and drop the result into `statements/` beside the
+original exports. A file with the ledger's header is read as annotations, not
+as a statement: it never adds a transaction, and a row's label is accepted only
+if its date, description and amount still match a transaction from the exports
+exactly. One row that matches nothing, or names a line that is not in
+`categories.yml`, refuses the whole file, naming the rows; the run goes on
+without it. That is the same rule the PDF importer lives by — a label is only
+as trustworthy as the row it sits on, and a shifted amount or a dropped row
+has to be caught rather than counted. Accepted labels beat patterns and sit
+just below the `dated` pins; the ledger records them as `rule: annotated`.
+Rows left as `uncategorised`, `review` or `refund` carry no label and are
+classified as before, so a partly filled ledger is fine.
+
 ## How much data you need
 
 **A few months is enough for the part that matters.** Recurring spending —

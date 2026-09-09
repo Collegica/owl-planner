@@ -9,5 +9,5 @@
 
 ## 3. Page and docs
 
-- [ ] 3.1 Mark an annotated file in the page's file list and surface the refusal message; verify in the browser with an edited sample ledger
-- [ ] 3.2 README paragraph; `check-all` green
+- [x] 3.1 Mark an annotated file in the page's file list and surface the refusal message; verify in the browser with an edited sample ledger
+- [x] 3.2 README paragraph; `check-all` green

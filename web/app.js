@@ -3,6 +3,10 @@
 
 const $ = (id) => document.getElementById(id);
 const CFG = ['rules.yml', 'loans.yml', 'known-annual.yml'];
+// ledger.csv's header: a dropped file that carries it is annotations, which
+// the engine verifies against the statements and never reads as transactions
+const LEDGER_HEADER = 'date,description,amount,kind,line,rule';
+const isAnnotated = (text) => text.split(/\r?\n/, 1)[0].replace(/^\uFEFF/, '').split(/[,;\t|]/).map((c) => c.trim().toLowerCase()).join(',') === LEDGER_HEADER;
 
 // ---------------------------------------------------------------- storage
 // IndexedDB, one store, keyed by file name. Private to this origin and this
@@ -83,7 +87,7 @@ function renderFiles() {
   const ul = $('files'); ul.innerHTML = '';
   for (const f of state.files) {
     const li = document.createElement('li');
-    li.innerHTML = `<span class="name"></span><span class="size">${human(f.size)}</span><button class="btn small quiet" type="button">remove</button>`;
+    li.innerHTML = `<span class="name"></span>${f.annotated ? '<span class="tag">annotations</span>' : ''}<span class="size">${human(f.size)}</span><button class="btn small quiet" type="button">remove</button>`;
     li.querySelector('.name').textContent = f.name;
     li.querySelector('button').onclick = () => { state.files = state.files.filter((x) => x !== f); renderFiles(); };
     ul.appendChild(li);
@@ -98,7 +102,7 @@ async function addFiles(list) {
     if (/\.pdf$/i.test(file.name)) { refused.push(file.name); continue; }
     const text = await file.text();
     state.files = state.files.filter((x) => x.name !== file.name);
-    state.files.push({ name: file.name, text, size: file.size });
+    state.files.push({ name: file.name, text, size: file.size, annotated: isAnnotated(text) });
   }
   if (refused.length) {
     notice.hidden = false; notice.className = 'notice';
@@ -207,6 +211,13 @@ function showResult(m) {
     .replace(/^  wrote \/work\/budget\.md$/m, '  budget.md is in the next tab; download it from there')
     .replace(/^  wrote uncategorised\.csv — (.*)$/m, '  not yet categorised: $1 (third tab)');
   $('console').innerHTML = colourConsole(text);
+  // an annotated file the engine refused belongs next to the file list, with
+  // the rows it named, not only in the headline
+  const refused = m.console.match(/^  ! (.+?): refused[^\n]*(?:\n {6}[^\n]*)*/m);
+  if (refused) {
+    const notice = $('dropNotice'); notice.hidden = false; notice.className = 'notice bad';
+    notice.innerHTML = `<b>${esc(refused[1])} was not applied.</b> Its labels are used only when every row still matches a statement exactly.<pre>${esc(refused[0])}</pre>`;
+  }
   $('budget').innerHTML = m.budget ? renderMarkdown(m.budget) : '<p class="empty">No budget was written — see the headline.</p>';
   $('dlBudget').disabled = !m.budget;
   $('dlLedger').disabled = !m.ledger;
