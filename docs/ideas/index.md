@@ -2,7 +2,7 @@
 
 *Generated from the headers in this folder. Do not edit; edit the idea.*
 
-29 ideas: 20 seed, 0 explored, 7 promoted, 2 retired.
+29 ideas: 19 seed, 0 explored, 8 promoted, 2 retired.
 
 ## In order
 
@@ -16,20 +16,19 @@ Open ideas (`seed`, `explored`) by value, then by effort — S is days, M weeks,
 | 4 | IDEA-0022 | [Terms on the book: when it was lent, when it is due, and how many days late it is](20260909_terms-and-days-past-due.md) | high | S | `lending-ledger` | `formal-loan-record` |
 | 5 | IDEA-0025 | [Money paid on someone's behalf and coming back later: a reimbursable, not a loan and not spending](20260909_reimbursables.md) | high | S | `lending-ledger` | `iou-trackers` |
 | 6 | IDEA-0001 | [Every figure in the budget can say which rule produced it](20260909_every-figure-answers-why.md) | high | M | `money-classification` | `data` |
-| 7 | IDEA-0002 | [A regression suite of invented statements, one per bug the reconciler has caught](20260909_synthetic-statement-fixtures.md) | high | M | `pdf-reconciliation` | `incident` |
-| 8 | IDEA-0003 | [Notice a month-end payment that wobbles across the boundary, and suggest `level`](20260909_detect-month-boundary-wobble.md) | medium | S | `recurring-baseline` | `data` |
-| 9 | IDEA-0004 | [A pin that matches no transaction is reported, not silently ignored](20260909_pins-that-match-nothing.md) | medium | S | `money-classification` | `incident` |
-| 10 | IDEA-0010 | [Every run prints its assumptions and its out-of-scope list](20260909_print-the-assumptions.md) | medium | S | `budget-report` | `canadian-planners` |
-| 11 | IDEA-0015 | [One normalised, classified, re-importable ledger that outlives any bank's export window](20260909_a-durable-ledger-export.md) | medium | S | `statement-import` | `canadian-planners` |
-| 12 | IDEA-0017 | [Export the intake-form table as a workbook a planner can open](20260909_intake-form-workbook.md) | medium | S | `budget-report` | `canadian-planners` |
-| 13 | IDEA-0018 | [State what the figures are and are not, on every output surface](20260909_education-not-advice-on-every-surface.md) | medium | S | `planning` | `canadian-planners` |
-| 14 | IDEA-0023 | [Show the repayment schedule against what actually arrived](20260909_expected-against-received.md) | medium | S | `lending-ledger` | `formal-loan-record` |
-| 15 | IDEA-0024 | [A loan you decide not to collect is written off — dated, reasoned, and moved to the budget](20260909_write-off-as-a-state.md) | medium | S | `lending-ledger` | `formal-loan-record` |
-| 16 | IDEA-0026 | [A statement per person: every leg, dated, with a running balance](20260909_per-counterparty-statement.md) | medium | S | `lending-ledger` | `iou-trackers` |
-| 17 | IDEA-0028 | [Expected repayments are dated inflows in the plan, not just an outstanding balance](20260909_receivables-in-the-plan.md) | medium | S | `planning` | `formal-loan-record` |
-| 18 | IDEA-0013 | [A monthly net-worth line, for free, from the closing balances every statement already carries](20260909_net-worth-from-closing-balances.md) | medium | M | `planning` | `canadian-planners` |
-| 19 | IDEA-0012 | [Two people, one budget: transfers between partners are a third kind of movement](20260909_household-mode.md) | medium | L | `household` | `canadian-planners` |
-| 20 | IDEA-0027 | [An optional `rate:` on a loan, and the one date that matters for a family investment loan](20260909_rate-and-the-30-january-line.md) | low | S | `lending-ledger` | `iou-trackers` |
+| 7 | IDEA-0003 | [Notice a month-end payment that wobbles across the boundary, and suggest `level`](20260909_detect-month-boundary-wobble.md) | medium | S | `recurring-baseline` | `data` |
+| 8 | IDEA-0004 | [A pin that matches no transaction is reported, not silently ignored](20260909_pins-that-match-nothing.md) | medium | S | `money-classification` | `incident` |
+| 9 | IDEA-0010 | [Every run prints its assumptions and its out-of-scope list](20260909_print-the-assumptions.md) | medium | S | `budget-report` | `canadian-planners` |
+| 10 | IDEA-0015 | [One normalised, classified, re-importable ledger that outlives any bank's export window](20260909_a-durable-ledger-export.md) | medium | S | `statement-import` | `canadian-planners` |
+| 11 | IDEA-0017 | [Export the intake-form table as a workbook a planner can open](20260909_intake-form-workbook.md) | medium | S | `budget-report` | `canadian-planners` |
+| 12 | IDEA-0018 | [State what the figures are and are not, on every output surface](20260909_education-not-advice-on-every-surface.md) | medium | S | `planning` | `canadian-planners` |
+| 13 | IDEA-0023 | [Show the repayment schedule against what actually arrived](20260909_expected-against-received.md) | medium | S | `lending-ledger` | `formal-loan-record` |
+| 14 | IDEA-0024 | [A loan you decide not to collect is written off — dated, reasoned, and moved to the budget](20260909_write-off-as-a-state.md) | medium | S | `lending-ledger` | `formal-loan-record` |
+| 15 | IDEA-0026 | [A statement per person: every leg, dated, with a running balance](20260909_per-counterparty-statement.md) | medium | S | `lending-ledger` | `iou-trackers` |
+| 16 | IDEA-0028 | [Expected repayments are dated inflows in the plan, not just an outstanding balance](20260909_receivables-in-the-plan.md) | medium | S | `planning` | `formal-loan-record` |
+| 17 | IDEA-0013 | [A monthly net-worth line, for free, from the closing balances every statement already carries](20260909_net-worth-from-closing-balances.md) | medium | M | `planning` | `canadian-planners` |
+| 18 | IDEA-0012 | [Two people, one budget: transfers between partners are a third kind of movement](20260909_household-mode.md) | medium | L | `household` | `canadian-planners` |
+| 19 | IDEA-0027 | [An optional `rate:` on a loan, and the one date that matters for a family investment loan](20260909_rate-and-the-30-january-line.md) | low | S | `lending-ledger` | `iou-trackers` |
 
 ## Statement import (`statement-import`) — 4
 
@@ -44,7 +43,7 @@ Open ideas (`seed`, `explored`) by value, then by effort — S is days, M weeks,
 
 | id | idea | lens | value | effort | status | went to |
 |---|---|---|---|---|---|---|
-| IDEA-0002 | [A regression suite of invented statements, one per bug the reconciler has caught](20260909_synthetic-statement-fixtures.md) | `incident` | high | M | seed |  |
+| IDEA-0002 | [A regression suite of invented statements, one per bug the reconciler has caught](20260909_synthetic-statement-fixtures.md) | `incident` | high | M | promoted | `openspec/changes/pdf-in-browser` |
 
 ## Money classification (`money-classification`) — 3
 

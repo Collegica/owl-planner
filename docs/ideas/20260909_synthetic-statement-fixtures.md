@@ -2,10 +2,10 @@
 id: IDEA-0002
 lens: incident
 capability: pdf-reconciliation
-status: seed
+status: promoted
 effort: M
 value: high
-promoted_to: 
+promoted_to: openspec/changes/pdf-in-browser
 ---
 
 # A regression suite of invented statements, one per bug the reconciler has caught
