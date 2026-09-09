@@ -19,5 +19,5 @@
 ## 4. Release and site
 
 - [x] 4.1 CI: on a GitHub release, build `web/dist/` and attach `owl-web.tar.gz`; verify the asset appears on the release page
-- [ ] 4.2 Collegica workflow: after `pixi run public`, fetch the latest `owl-web.tar.gz` and unpack into `public/owl/`; verify `https://www.collegica.org/owl/` serves the page and its About-page claim still holds (no third-party requests)
-- [ ] 4.3 Add "run it in your browser" to the article's "Where it lives" section and to the README; verify both render and link to the live page
+- [x] 4.2 Collegica workflow: after `pixi run public`, fetch the latest `owl-web.tar.gz` and unpack into `public/owl/`; verify `https://www.collegica.org/owl/` serves the page and its About-page claim still holds (no third-party requests)
+- [x] 4.3 Add "run it in your browser" to the article's "Where it lives" section and to the README; verify both render and link to the live page
