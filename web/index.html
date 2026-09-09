@@ -32,10 +32,10 @@
 
   <section class="step">
     <h2><span class="n">01</span> Statements</h2>
-    <p class="hint">CSV exports from online banking — every account you spend from, cards included. PDFs need the <a href="https://github.com/Collegica/owl-planner#1-export-the-statements">local tool</a>.</p>
+    <p class="hint">CSV exports from online banking — every account you spend from, cards included. PDF statements from CIBC, RBC, Scotiabank and ScotiaLine are converted here in the tab and refused unless they add up to the totals the statement prints.</p>
     <label class="drop" id="drop">
-      <strong>Drop CSV files here</strong> or click to choose
-      <input type="file" id="picker" multiple accept=".csv,text/csv">
+      <strong>Drop CSV or PDF files here</strong> or click to choose
+      <input type="file" id="picker" multiple accept=".csv,.pdf,text/csv,application/pdf">
     </label>
     <ul class="files" id="files"></ul>
     <div id="dropNotice" class="notice" hidden></div>

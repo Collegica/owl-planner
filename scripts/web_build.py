@@ -8,7 +8,8 @@ Pyodide is vendored, never loaded from a CDN: the page is served from the
 Collegica site, which makes no third-party requests, and this build keeps it
 that way. The runtime files come from the pinned GitHub release; the pyyaml
 wheel from the matching release channel on jsdelivr — downloaded here, at build
-time, and checked against the SHA-256 recorded below.
+time, and checked against the SHA-256 recorded below. pdf.js, which reads PDF
+statements in the browser, comes the same way from the npm registry tarball.
 """
 from __future__ import annotations
 
@@ -29,19 +30,26 @@ PYODIDE = '314.0.6'   # CPython 3.14.2, abi 2026_0
 CORE_URL = f'https://github.com/pyodide/pyodide/releases/download/{PYODIDE}/pyodide-core-{PYODIDE}.tar.bz2'
 WHEEL = 'pyyaml-6.0.3-cp314-cp314-pyemscripten_2026_0_wasm32.whl'
 WHEEL_URL = f'https://cdn.jsdelivr.net/pyodide/v{PYODIDE}/full/{WHEEL}'
+PDFJS = '6.3.289'
+PDFJS_TARBALL = f'pdfjs-dist-{PDFJS}.tgz'
+PDFJS_URL = f'https://registry.npmjs.org/pdfjs-dist/-/{PDFJS_TARBALL}'
 
 # Recorded on first build; a mismatch means the upstream file changed under
 # the same name, which is exactly the thing to stop on.
 SHA256 = {
     f'pyodide-core-{PYODIDE}.tar.bz2': '1016c31e39ce3764d9a418cbb491a392c802c1b86ccc1367f009f5c59bf8f5fd',
     WHEEL: 'b1447216501f0d3aef290558fe33691dd51b0839e70f9a970defb12b36d82df8',
+    PDFJS_TARBALL: '06f25e887adc6489f04c9fcb14198c77e4e5623a59a0bba5c4cea5838a4f1241',
 }
 
 # The runtime files the page needs — nothing else from the tarball.
 RUNTIME = ['pyodide.mjs', 'pyodide.asm.mjs', 'pyodide.asm.wasm',
            'python_stdlib.zip', 'pyodide-lock.json']
-ENGINE = ['budget.py', 'categories.yml', 'rules.example.yml',
-          'loans.example.yml', 'known-annual.example.yml']
+ENGINE = ['budget.py', 'pdf_import.py', 'pdf_layout.py', 'categories.yml',
+          'rules.example.yml', 'loans.example.yml', 'known-annual.example.yml']
+# The two pdf.js modules the worker imports, plus the licence they come
+# under; nothing else from the package.
+PDFJS_FILES = ['build/pdf.min.mjs', 'build/pdf.worker.min.mjs', 'LICENSE']
 
 
 def sha256(path: Path) -> str:
@@ -87,6 +95,14 @@ def main(argv=None) -> int:
             (DIST / 'pyodide' / name).write_bytes(fh.read())
     shutil.copy(fetch(WHEEL_URL, CACHE / WHEEL), DIST / 'pyodide' / WHEEL)
 
+    print('pdf.js')
+    (DIST / 'pdfjs').mkdir()
+    with tarfile.open(fetch(PDFJS_URL, CACHE / PDFJS_TARBALL), 'r:gz') as tar:
+        members = {m.name.split('/', 1)[1]: m for m in tar.getmembers() if '/' in m.name}
+        for name in PDFJS_FILES:
+            fh = tar.extractfile(members[name])
+            (DIST / 'pdfjs' / Path(name).name).write_bytes(fh.read())
+
     print('engine')
     (DIST / 'app').mkdir()
     for name in ENGINE:
@@ -104,7 +120,7 @@ def main(argv=None) -> int:
     print('page')
     for name in ('index.html', 'app.js', 'worker.js', 'style.css'):
         shutil.copy(WEB / name, DIST / name)
-    (DIST / 'VERSION').write_text(f'pyodide {PYODIDE}\n')
+    (DIST / 'VERSION').write_text(f'pyodide {PYODIDE}\npdfjs {PDFJS}\n')
 
     total = sum(p.stat().st_size for p in DIST.rglob('*') if p.is_file())
     biggest = max((p for p in DIST.rglob('*') if p.is_file()), key=lambda p: p.stat().st_size)

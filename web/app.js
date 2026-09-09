@@ -47,7 +47,9 @@ const db = {
 
 // ---------------------------------------------------------------- state
 const state = {
-  files: [],                       // [{name, text, size}]
+  files: [],                       // [{name, text, size, converted?: {from, bank, transactions}}]
+  pending: [],                     // PDFs the worker is still converting, by name
+  refused: [],                     // PDFs it would not use: [{name, why, extracted, stated, bank, banks}]
   config: { 'rules.yml': '', 'loans.yml': '', 'known-annual.yml': '' },
   examples: {},                    // the shipped *.example.yml, for reset and first run
   current: 'rules.yml',
@@ -65,7 +67,9 @@ worker.onmessage = (e) => {
     setRuntime('ready', `Ready — Python loaded in ${m.seconds}s. Nothing leaves this tab.`);
     $('version').textContent = `Pyodide ${m.version}.`;
     updateRunButton();
+    for (const send of waitingForRuntime.splice(0)) send();
   } else if (m.type === 'result') showResult(m);
+  else if (m.type === 'converted') finishConvert(m);
   else if (m.type === 'error') {
     setRuntime('error', m.text);
     $('run').disabled = false; $('run').textContent = 'Build the budget';
@@ -83,28 +87,86 @@ function renderFiles() {
   const ul = $('files'); ul.innerHTML = '';
   for (const f of state.files) {
     const li = document.createElement('li');
-    li.innerHTML = `<span class="name"></span><span class="size">${human(f.size)}</span><button class="btn small quiet" type="button">remove</button>`;
+    if (f.converted) {
+      // the CSV made from a PDF: say so, and offer it, so it can be kept and
+      // dropped next time without converting again
+      li.innerHTML = `<span class="name"></span><span class="size"></span><button class="btn small quiet" type="button" data-act="download">download CSV</button><button class="btn small quiet" type="button" data-act="remove">remove</button>`;
+      li.querySelector('.size').textContent = `converted from ${f.converted.from} (${f.converted.bank}), ${f.converted.transactions} transactions, reconciled`;
+      li.querySelector('[data-act="download"]').onclick = () => download(f.name, f.text, 'text/csv');
+    } else {
+      li.innerHTML = `<span class="name"></span><span class="size">${human(f.size)}</span><button class="btn small quiet" type="button" data-act="remove">remove</button>`;
+    }
     li.querySelector('.name').textContent = f.name;
-    li.querySelector('button').onclick = () => { state.files = state.files.filter((x) => x !== f); renderFiles(); };
+    li.querySelector('[data-act="remove"]').onclick = () => { state.files = state.files.filter((x) => x !== f); renderFiles(); };
+    ul.appendChild(li);
+  }
+  for (const name of state.pending) {
+    const li = document.createElement('li');
+    li.innerHTML = '<span class="name"></span><span class="size">converting in this tab…</span>';
+    li.querySelector('.name').textContent = name;
     ul.appendChild(li);
   }
   updateRunButton();
 }
 
 async function addFiles(list) {
-  const notice = $('dropNotice'); notice.hidden = true;
-  const refused = [];
+  $('dropNotice').hidden = true;
   for (const file of list) {
-    if (/\.pdf$/i.test(file.name)) { refused.push(file.name); continue; }
+    if (/\.pdf$/i.test(file.name)) { convertPdf(file); continue; }
     const text = await file.text();
     state.files = state.files.filter((x) => x.name !== file.name);
     state.files.push({ name: file.name, text, size: file.size });
   }
-  if (refused.length) {
-    notice.hidden = false; notice.className = 'notice';
-    notice.innerHTML = `<b>${refused.length === 1 ? 'That PDF was' : 'Those PDFs were'} not read.</b> PDF statements need poppler, which a browser does not have: convert them with <code>pixi run pdf-import</code> from <a href="https://github.com/Collegica/owl-planner">the local tool</a> and drop the CSVs it writes.`;
-  }
   renderFiles();
+}
+
+// ---------------------------------------------------------------- PDF statements
+// A PDF goes to the worker as bytes. pdf.js reads it there, the same
+// extractors as the local tool turn it into the normalised CSV, and the same
+// gate refuses it unless the transactions add up to the totals the statement
+// prints. What comes back joins the run like a dropped CSV, marked as
+// converted; what is refused is named here with both figures and not used.
+const waitingForRuntime = [];
+function convertPdf(file) {
+  const send = async () => {
+    const bytes = await file.arrayBuffer();
+    worker.postMessage({ type: 'convert', name: file.name, bytes }, [bytes]);
+  };
+  state.pending = state.pending.filter((n) => n !== file.name);
+  state.pending.push(file.name);
+  state.refused = state.refused.filter((r) => r.name !== file.name);
+  if (state.ready) send(); else waitingForRuntime.push(send);
+}
+
+function finishConvert(m) {
+  state.pending = state.pending.filter((n) => n !== m.name);
+  if (m.reconciled) {
+    const name = m.name.replace(/\.pdf$/i, '') + '.csv';
+    state.files = state.files.filter((x) => x.name !== name);
+    state.files.push({ name, text: m.csv, size: new Blob([m.csv]).size,
+                       converted: { from: m.name, bank: m.bank, transactions: m.transactions } });
+  } else {
+    state.refused.push(m);
+  }
+  renderFiles(); renderRefusals();
+}
+
+const money = (v) => '$' + Number(v).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function renderRefusals() {
+  const notice = $('dropNotice');
+  if (!state.refused.length) { notice.hidden = true; return; }
+  const lines = state.refused.map((r) => {
+    const name = `<b>${esc(r.name)}</b>`;
+    if (r.why === 'unknown layout') {
+      return `${name} is not a layout this page knows. It reads PDF statements from ${r.banks.join(', ')} (matched by the bank's name in the file name or the statement); for another bank, export the CSV from online banking and drop that instead.`;
+    }
+    if (r.why === 'unreadable') return `${name} could not be read as a PDF${r.error ? ` (${esc(r.error)})` : ''}.`;
+    if (r.why === 'no summary found') return `${name} (${r.bank}) was refused: no totals line was found to reconcile against, so nothing from it is used.`;
+    const what = r.why === 'deposits mismatch' ? 'deposits' : 'transactions';
+    return `${name} (${r.bank}) was refused: its ${what} add up to ${money(r.extracted)} and the statement states ${money(r.stated)}. Nothing from it is used — a parsing error and a real transaction look the same until the totals agree.`;
+  });
+  notice.hidden = false; notice.className = 'notice bad';
+  notice.innerHTML = lines.join('<br>');
 }
 
 const drop = $('drop');
