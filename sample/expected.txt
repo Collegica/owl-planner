@@ -2,6 +2,11 @@
   categorised 99% of spending
   observed 2026-01-01 to 2026-09-02  (8 complete month(s))
 
+  QUESTIONS   2 descriptions account for 100% of what was not classified
+               1. newtown dental — 3 transactions, $452 (~$151 each)
+               2. the book — 2 transactions, $66 (~$33 each)
+              Run in a terminal to answer them; --no-interview prints this and carries on.
+
   LEVELLED    $831/month — support payment — made on the last day of the month from chequing
               $6,650 over 7 transfer(s) in 8 months — a transfer cap can split the bigger ones, and a month-end
               payment often clears on the 1st; charged monthly instead of on the dates they cleared

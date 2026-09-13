@@ -254,6 +254,7 @@ def compile_rules(rules):
 
 
 def main(argv=None):
+    argv_in = list(argv) if argv is not None else sys.argv[1:]
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--dir', default=str(HERE / 'statements'))
@@ -270,6 +271,9 @@ def main(argv=None):
     ap.add_argument('--merge', metavar='FRAGMENT',
                     help='append a rules.yml fragment (the answer to ask-your-ai.md) '
                          'to the personal rules.yml, then run')
+    ap.add_argument('--no-interview', action='store_true',
+                    help='print the questions about what could not be classified, '
+                         'but do not ask them (the default when there is no terminal)')
     a = ap.parse_args(argv)
 
     def cfg(name):
@@ -586,6 +590,36 @@ def main(argv=None):
     print(f"  categorised {pct:.0f}% of spending")
     print(f"  observed {lo} to {hi}  ({len(whole)} complete month(s))")
     print()
+    # The interview: what could not be classified, asked in dollar order, one
+    # question per signature. Answers are written to the personal files and
+    # the run starts again so the person sees the effect. Without a terminal
+    # (the browser, CI, a script) the questions are printed and that is all.
+    import interview as _interview
+    qs = _interview.questions(uncategorised, signature)
+    if qs:
+        for row in _interview.render(qs): print(row)
+        print()
+        try:
+            tty = sys.stdin.isatty()
+        except Exception:
+            tty = False
+        if tty and not a.no_interview:
+            import rules_merge
+            lines_ = rules_merge.budget_lines()
+            answers = _interview.ask(qs, lines_)
+            if answers:
+                try:
+                    rules_text, loans_text, summary = _interview.write(
+                        answers, cfg('rules').read_text(), cfg('loans').read_text(), lines=lines_)
+                except rules_merge.MergeError as e:
+                    sys.exit(f"interview: {e}")
+                (Path(a.config) / 'rules.yml').write_text(rules_text)
+                (Path(a.config) / 'loans.yml').write_text(loans_text)
+                print()
+                for s_ in summary: print(f"  written     {s_}")
+                print(f"  {len(summary)} answer(s) recorded in rules.yml / loans.yml with today's date; running again.")
+                print()
+                return main(argv_in + ['--no-interview'])
     for lnote, (total, n) in sorted(levels.items()):
         print(f"  LEVELLED    ${total/len(whole):,.0f}/month — {lnote}")
         print(f"              ${total:,.0f} over {n} transfer(s) in {len(whole)} months — a transfer "
