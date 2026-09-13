@@ -9,6 +9,8 @@ ledger.csv
 sample/ledger.csv
 ask-your-ai.md
 sample/ask-your-ai.md
+# The interview's answer fragment: merchant names, written by the owl-interview skill
+/answer.yml
 .pytest_cache/
 
 # Your personal configuration: names, dates, amounts. Copy the
