@@ -21,6 +21,7 @@ pdf-import = { cmd = "python pdf_import.py", description = "Convert statement PD
 # of money movement. It is the demo, the test fixture and the only data the
 # repository will ever contain.
 sample       = { cmd = "python budget.py --dir sample/statements --config sample --out sample/budget.md", description = "Run the budget on the invented household in sample/" }
+interview    = { cmd = "owl chat -t terminal,file,clarify -s owl-interview", description = "Let Hermes interview you about unclassified merchants (needs the owl profile — see README)" }
 sample-check = { cmd = "python budget.py --dir sample/statements --config sample --out sample/budget.md | diff sample/expected.txt - && echo 'sample output unchanged'", description = "Fail if the sample's output differs from sample/expected.txt (CI runs this)" }
 test         = { cmd = "pytest -q tests", description = "Golden tests: classification precedence, the coverage guard, the three states — on invented rows" }
 sample-regen = { cmd = "python scripts/make_sample.py && python budget.py --dir sample/statements --config sample --out sample/budget.md > sample/expected.txt", description = "Regenerate the sample statements and the expected output after an intended change" }

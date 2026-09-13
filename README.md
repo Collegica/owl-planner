@@ -129,6 +129,60 @@ is touched, comments included, and a fragment that names a line not in
 `categories.yml` is refused with the name. The browser page has the same
 thing as its fourth tab, with a paste box for the answer.
 
+### Or let Hermes ask you
+
+[Hermes Agent](https://github.com/NousResearch/hermes-agent) can run that
+loop with you in the room: it runs the tool, reads `ask-your-ai.md`, asks you
+what each merchant is — a form with choices, largest merchants first — writes
+your answers as the fragment, merges it and runs again until nothing is left
+to ask. The skill is in `skills/owl-interview/`, and its rule is the tool's
+rule: it never opens a statement, the ledger or the budget. Ask, do not guess;
+`unsure` is an answer.
+
+The same skill works in the terminal, in Hermes Desktop, and through Hermes's
+messaging gateway, because all three drive the same agent. Set it up once in
+its own Hermes profile so it starts with no other skills and no outward tools:
+
+```bash
+hermes profile create owl --no-skills       # an isolated profile; creates the `owl` command
+owl config set skills.external_dirs '["~/workspace/collegica/owl-planner/skills"]'
+owl config set agent.disabled_toolsets '["web","browser","memory","delegation","cronjob"]'
+```
+
+Then, from this checkout:
+
+```bash
+pixi run interview        # terminal: `owl chat -t terminal,file,clarify -s owl-interview`
+owl desktop               # the same, in Hermes Desktop; type /owl-interview
+```
+
+**The model is your decision, and it is the only place a merchant name
+leaves this machine.** The engine still makes no network request and needs
+no key; the agent is yours, and what it sends to its model is the pack — the
+names, counts and size bands in `ask-your-ai.md`, and nothing else. Two
+options:
+
+- **Gemini (cloud).** Hermes has a native Gemini provider. Make an API key at
+  [aistudio.google.com/apikey](https://aistudio.google.com/apikey) on a
+  project with billing enabled — Hermes's own guide says the free tier is too
+  small for agent sessions, and free-tier and paid keys have different
+  data-use terms; read them. Then `owl config set GOOGLE_API_KEY ...` and
+  `owl model`, pick *Google AI Studio* and a model (Hermes's guide recommends
+  `gemini-3.7-flash`). Merchant names go to Google; nothing else does.
+- **Gemma 4 (local).** Nothing leaves the machine. Install
+  [Ollama](https://ollama.com), then `ollama pull gemma4:12b` (7.6 GB;
+  comfortable on a 24 GB Mac — the default `gemma4` tag is the 9.6 GB `e4b`,
+  and `26b` needs about 19 GB). Point the profile at it with
+  `owl model` → *Custom endpoint*, base URL `http://localhost:11434/v1`, no
+  key, model `gemma4:12b`. (`ollama launch hermes --model gemma4:12b` does
+  the same for Hermes's *default* profile, not the `owl` one.) Expect a
+  slower, plainer interviewer than Gemini; the questions are the same because
+  the skill writes them.
+
+Either way, `pixi run sample` first and interview the invented household in
+`sample/` before your own statements. That run merges into `sample/rules.yml`,
+which is tracked — `git checkout -- sample/` puts it back.
+
 ## How much data you need
 
 **A few months is enough for the part that matters.** Recurring spending —
