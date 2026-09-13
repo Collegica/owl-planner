@@ -41,10 +41,12 @@ import budget
 budget.run(argv)
 `);
 const webBudget = pyodide.FS.readFile('/work/budget.md', { encoding: 'utf8' });
+const webDash = pyodide.FS.readFile('/work/dashboard.html', { encoding: 'utf8' });
 
 // the CLI, on the same inputs
 const cliConsole = execFileSync('python', ['budget.py', '--dir', 'sample/statements', '--config', 'sample', '--out', 'sample/budget.md'], { cwd: ROOT, encoding: 'utf8' });
 const cliBudget = readFileSync(resolve(ROOT, 'sample', 'budget.md'), 'utf8');
+const cliDash = readFileSync(resolve(ROOT, 'sample', 'dashboard.html'), 'utf8');
 
 const strip = (s) => s.split('\n').filter((l) => !/^  wrote /.test(l)).join('\n');
 let failed = 0;
@@ -62,4 +64,8 @@ if (webBudget !== cliBudget) {
 }
 if (failed) process.exit(1);
 const recurring = (cliConsole.match(/RECURRING\s+(\S+)/) || [])[1];
-console.log(`parity: browser engine and CLI agree on the sample (RECURRING ${recurring}, ${cliBudget.length} bytes of budget.md)`);
+if (webDash !== cliDash) {
+  console.error('dashboard.html differs between the browser engine and the CLI');
+  process.exit(1);
+}
+console.log(`parity: browser engine and CLI agree on the sample (RECURRING ${recurring}, ${cliBudget.length} bytes of budget.md, ${cliDash.length} bytes of dashboard.html)`);

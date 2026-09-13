@@ -18,7 +18,7 @@ async function boot() {
   post('status', { phase: 'start', text: 'Starting Python…' });
 
   // the engine and its example files, exactly as shipped
-  const app = ['budget.py', 'rules_merge.py', 'interview.py', 'pdf_import.py', 'pdf_layout.py', 'categories.yml', 'rules.example.yml', 'loans.example.yml', 'known-annual.example.yml'];
+  const app = ['budget.py', 'rules_merge.py', 'interview.py', 'dashboard.py', 'pdf_import.py', 'pdf_layout.py', 'categories.yml', 'rules.example.yml', 'loans.example.yml', 'known-annual.example.yml'];
   pyodide.FS.mkdirTree('/app');
   for (const name of app) {
     const r = await fetch(`./app/${name}`);
@@ -52,6 +52,7 @@ async function run({ files, config, year }) {
   try { pyodide.FS.unlink(`${WORK}/uncategorised.csv`); } catch { /* first run */ }
   try { pyodide.FS.unlink(`${WORK}/ledger.csv`); } catch { /* first run */ }
   try { pyodide.FS.unlink(`${WORK}/ask-your-ai.md`); } catch { /* first run */ }
+  try { pyodide.FS.unlink(`${WORK}/dashboard.html`); } catch { /* first run */ }
 
   const argv = ['--dir', `${WORK}/statements`, '--config', WORK, '--out', `${WORK}/budget.md`];
   if (year) argv.push('--year', String(year));
@@ -67,6 +68,7 @@ budget.run(argv)
     uncategorised: readIfExists(`${WORK}/uncategorised.csv`),
     ledger: readIfExists(`${WORK}/ledger.csv`),
     pack: readIfExists(`${WORK}/ask-your-ai.md`),
+    dashboard: readIfExists(`${WORK}/dashboard.html`),
   });
 }
 
