@@ -18,7 +18,7 @@ async function boot() {
   post('status', { phase: 'start', text: 'Starting Python…' });
 
   // the engine and its example files, exactly as shipped
-  const app = ['budget.py', 'rules_merge.py', 'pdf_import.py', 'pdf_layout.py', 'categories.yml', 'rules.example.yml', 'loans.example.yml', 'known-annual.example.yml'];
+  const app = ['budget.py', 'rules_merge.py', 'interview.py', 'pdf_import.py', 'pdf_layout.py', 'categories.yml', 'rules.example.yml', 'loans.example.yml', 'known-annual.example.yml'];
   pyodide.FS.mkdirTree('/app');
   for (const name of app) {
     const r = await fetch(`./app/${name}`);

@@ -28,8 +28,9 @@ produce are gitignored.
 ## 1. Export the statements
 
 In online banking, for **every account you spend from** — chequing, each credit
-card, any line of credit — export the last 12 months as CSV and drop the files
-in `statements/`.
+card, any line of credit — export the last six months or so as CSV and drop
+the files in `statements/`. More is better; one month works, and the tool
+labels what a short window can and cannot tell you.
 
 Filenames do not matter. Formats do not need to match: the tool reads each file
 on its own terms.
@@ -81,12 +82,33 @@ transaction, the kind it was judged to be and the rule that judged it is in
 Useful flags: `--year 2026` to restrict to one calendar year, `--dir` to read
 from somewhere else, `--date-order dmy|mdy` for the ambiguous-date case below.
 
-## 3. Triage what it could not categorise
+## 3. Answer the questions
 
-Anything unmatched goes to `uncategorised.csv`, sorted by amount — largest
-first, because that is the order worth working in. Add a pattern to
-`rules.yml` for the top few and run again. Ten minutes of this usually gets
-coverage past 90%.
+Whatever the rules could not place comes back as questions, in a terminal,
+ranked by the money behind them — one per merchant, so one answer covers
+every recurrence:
+
+```
+  QUESTIONS   2 descriptions account for 100% of what was not classified
+               1. newtown dental — 3 transactions, $452 (~$150 each)
+               2. the book — 2 transactions, $66 (~$33 each)
+```
+
+Answer each with a budget-line number or a letter — `t` transfer, `i`
+income, `l` lending, `p` pass-through, `o` one-off, `v` a month-end
+obligation to level — and, if you like, a word on why. Enter means *don't
+know*: it stays unclassified and is asked again next time. `q` stops. Each
+answer is appended to your `rules.yml` or `loans.yml` with the date and your
+reason as a comment, nothing already there is touched, and the run starts
+again so you see the effect. Without a terminal — the browser page, a script,
+`--no-interview` — the questions are printed and the budget is still written.
+
+Six months of statements is a good amount; the tool works from one, and says
+which of its figures are measured and which are estimates.
+
+**Or edit the rules by hand.** Anything unmatched also goes to
+`uncategorised.csv`, sorted by amount — largest first. Add a pattern to
+`rules.yml` for the top few and run again.
 
 ```yaml
 categories:

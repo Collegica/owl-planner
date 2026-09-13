@@ -5,7 +5,7 @@ Turns what the tool cannot classify into a short, dollar-ranked set of questions
 ## ADDED Requirements
 
 ### Requirement: Questions are ranked by money, not count
-When unclassified spending exceeds a threshold share of total outflow, the tool SHALL print a question list ordered by the total amount each description signature accounts for, descending, and SHALL state what share of unclassified money the listed questions cover.
+Whenever any spending is unclassified, the tool SHALL print a question list ordered by the total amount each description signature accounts for, descending, capped at twenty questions per run, and SHALL state what share of unclassified money the listed questions cover.
 
 #### Scenario: Three unknown signatures
 - **WHEN** unclassified money is 900 under `NEW GROCER`, 300 under `SQ *CAFE` and 12 under `PARKING LOT 7`
@@ -20,6 +20,14 @@ Descriptions sharing a signature SHALL produce one question that shows the count
 
 ### Requirement: Every kind of money movement is an available answer
 Each question SHALL accept, as an answer, any budget line from `categories.yml` or any of: transfer, income, lending (with counterparty), savings line, pass-through, one-off, level. An answer of "don't know" SHALL leave the transactions unclassified and SHALL not be asked again in the same run.
+
+#### Scenario: Questions are asked only where there is a terminal
+- **WHEN** the tool runs without a terminal on standard input, or with `--no-interview`
+- **THEN** the question list is printed, nothing is asked, and the budget is written
+
+#### Scenario: The written pattern matches the descriptions behind it
+- **WHEN** the signature is `sq cafe` and the descriptions read `SQ *CAFE 4471`
+- **THEN** the pattern written is `sq\W+cafe`, and a signature whose words already match every description is written with plain spaces
 
 #### Scenario: Answer is a transfer
 - **WHEN** the user answers that `TFR TO 4412` is a transfer
