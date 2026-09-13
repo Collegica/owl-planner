@@ -57,7 +57,10 @@ nothing about where the money went.
 pixi run budget
 ```
 
-That writes `budget.md` and prints the headline:
+That writes `budget.md`, and beside it `dashboard.html` — the first screen as a
+page you can open: coverage as a number of answers, the recurring figure with
+its state, the months it was made from, and what was set aside — and prints
+the headline:
 
 ```
 files 4   transactions 293   duplicates dropped 0

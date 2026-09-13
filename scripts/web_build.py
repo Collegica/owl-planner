@@ -45,7 +45,7 @@ SHA256 = {
 # The runtime files the page needs — nothing else from the tarball.
 RUNTIME = ['pyodide.mjs', 'pyodide.asm.mjs', 'pyodide.asm.wasm',
            'python_stdlib.zip', 'pyodide-lock.json']
-ENGINE = ['budget.py', 'rules_merge.py', 'interview.py', 'pdf_import.py', 'pdf_layout.py',
+ENGINE = ['budget.py', 'rules_merge.py', 'interview.py', 'dashboard.py', 'pdf_import.py', 'pdf_layout.py',
           'categories.yml', 'rules.example.yml', 'loans.example.yml',
           'known-annual.example.yml']
 # The two pdf.js modules the worker imports, plus the licence they come

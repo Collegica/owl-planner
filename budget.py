@@ -776,11 +776,28 @@ def main(argv=None):
         md += [f"| {k} | {v:,.0f} | {n} |" for k, v, n in set_aside]
     md += ["", f"Every transaction, its kind and the rule that decided it: `ledger.csv`.", ""]
     Path(a.out).write_text("\n".join(md) + "\n")
+    # The first screen, as a page: the same figures the console prints,
+    # projected — coverage as a number of answers, the state before the
+    # figure, the months drawn, the five set-asides. dashboard.py owns the
+    # layout; nothing here is measured again.
+    import dashboard as _dashboard
+    _hi_r = max(vals) / median if median else 0
+    _lo_r = min(vals) / median if median else 0
+    (Path(a.out).parent / 'dashboard.html').write_text(_dashboard.render({
+        'state': state, 'whole': whole, 'per_month': per_month, 'median': median,
+        'median_months': median_months, 'baseline': baseline, 'mon': mon,
+        'steady': _hi_r <= 1.35 and _lo_r >= 0.75, 'hi_r': _hi_r, 'lo_r': _lo_r,
+        'pct': pct, 'spend': spend, 'question_totals': [q.total for q in qs],
+        'transfers': transfers_total, 'lending': lent_out, 'savings': sum(savings.values()),
+        'passthrough': passthrough_total, 'income': income_total,
+        'files': len(files), 'txns': len(txns), 'lo': str(lo), 'hi': str(hi),
+    }))
     with open(Path(a.out).parent / 'ledger.csv', 'w', newline='') as fh:
         w = csv.writer(fh); w.writerow(['date', 'description', 'amount', 'kind', 'line', 'rule'])
         for d, desc, amt, kind, line, rule in sorted(ledger):
             w.writerow([d.isoformat(), desc, f"{amt:.2f}", kind, line, rule])
     print(f"  wrote {a.out}")
+    print(f"  wrote dashboard.html — the first screen as a page: coverage, the recurring figure, what was set aside")
     if uncategorised:
         print(f"  wrote uncategorised.csv — {len(by_desc)} descriptions, "
               f"${sum(by_desc.values()):,.0f}. Add rules for the top few and re-run.")

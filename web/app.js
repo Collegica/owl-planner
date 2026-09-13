@@ -271,7 +271,8 @@ function showResult(m) {
   $('run').disabled = false; $('run').textContent = 'Build the budget';
   // the two file lines mean something on a disk, not in a tab
   const text = m.console
-    .replace(/^  wrote \/work\/budget\.md$/m, '  budget.md is in the next tab; download it from there')
+    .replace(/^  wrote \/work\/budget\.md$/m, '  budget.md is in its tab; download it from there')
+    .replace(/^  wrote dashboard\.html — (.*)$/m, '  dashboard: $1 (next tab)')
     .replace(/^  wrote uncategorised\.csv — (.*)$/m, '  not yet categorised: $1 (third tab)')
     .replace(/^  wrote ask-your-ai\.md — (.*)$/m, '  for your AI: $1 (fourth tab)');
   $('console').innerHTML = colourConsole(text);
@@ -285,12 +286,15 @@ function showResult(m) {
   showPack(m.pack);
   $('budget').innerHTML = m.budget ? renderMarkdown(m.budget) : '<p class="empty">No budget was written — see the headline.</p>';
   $('dlBudget').disabled = !m.budget;
+  $('dash').srcdoc = m.dashboard || '<p style="font-family:sans-serif;color:#666;padding:1rem">No dashboard was written — see the headline.</p>';
+  $('dlDash').disabled = !m.dashboard;
   $('dlLedger').disabled = !m.ledger;
   $('unc').innerHTML = m.uncategorised ? renderUncategorised(m.uncategorised) : '<p class="empty">Everything was categorised.</p>';
   selectPane('console');
 }
 
 $('dlBudget').onclick = () => state.result && download('budget.md', state.result.budget, 'text/markdown');
+$('dlDash').onclick = () => state.result && download('dashboard.html', state.result.dashboard, 'text/html');
 $('dlLedger').onclick = () => state.result && download('ledger.csv', state.result.ledger, 'text/csv');
 
 function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
@@ -346,7 +350,7 @@ function renderUncategorised(csv) {
 
 function selectPane(name) {
   for (const b of $('outTabs').querySelectorAll('button')) b.setAttribute('aria-selected', String(b.dataset.pane === name));
-  for (const p of ['console', 'budget', 'unc', 'ask']) $(`pane-${p}`).hidden = p !== name;
+  for (const p of ['console', 'dash', 'budget', 'unc', 'ask']) $(`pane-${p}`).hidden = p !== name;
 }
 $('outTabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) selectPane(b.dataset.pane); });
 
