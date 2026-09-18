@@ -1,0 +1,83 @@
+---
+title: "An AI agent for toothbrush"
+format: html
+---
+An AI-powered toothbrush, can sense its environment, interpret the sensed information, make decisions, and take actions.
+The cycle presented in @fig-model. A simplified model is:
+<center>
+Environment → Sensors → AI Agent → Decision → Actuators
+</center>
+
+![The way a toothbrush as an AI agent deals with the environment](images-tb/picture1.jpg){
+  #fig-model
+  fig-cap="The way a toothbrush as an AI agent deals with the environment"
+  fig-alt="toothbrush AI model"
+}
+
+If suddenly a user put alot of pressure on his tooth or gums, the AI agent appears and initiate some reactions to provide a safer experience for the user:
+
+- reduce motor power,
+- change vibration intensity,
+- provide a warning,
+- instruct the user to move to another region.
+
+For a toothbrush it is like get perceprions and make actions.
+$$
+f(P,M,C,T) \rightarrow (V,F,W) $$
+
+where, for example:
+
+$P$ = brushing pressure\
+$M$ = motion information\
+$C$ = contact/position information\
+$T$ = temporal information\
+$V$ = motor/vibration command\
+$F$ = feedback\
+$W$ = warning
+
+Literally the AI model can be defined on a MLP neural network.This makes the toothbrush a very nice educational example of an embedded AI agent, because the complete agent can potentially run on a small microcontroller rather than requiring a large computer.
+The key concept of this model is that there is a feedback loop in its delicate functionality:
+
+<center>
+Environment→Sensors→Agent→Action→Environment
+</center>
+
+For the AI toothbrush, the actuator is the component that converts the AI agent's decision into a physical action. The technology can be described at several levels.There are two common technologies:
+
+1. **Brush-motor actuator**
+
+The main actuator is an electric motor that moves the brush head.
+
+A. **Rotary/oscillating actuator**
+
+A compact DC motor, integrated with a mechanical 
+linkage, drives the tooth head in continuous rotation, producing a steady vibrational stimulus on the teeth.
+
+B. **Sonic/linear actuator**
+
+A high-frequency electromagnetic drive moves the brush head back and forth.
+This produces rapid bristle motion, typically at tens of thousands of movements per minute in commercial sonic toothbrushes.
+Motor/drive intensity can be controlled electronically. For an embedded-AI architecture.
+
+The second type is particularly interesting because the MCU-MicroController unit- can regulate the actuator electronically.
+
+2. **Motor-Driver**
+
+The neural network normally does not drive the motor directly. For example:
+<center>
+AI Agent→Motor Command→Motor Driver→Actuator
+</center>
+The microcontroller might generate a PWM signal representing the desired motor intensity. For example: $u_m = 0.7$ could represent 70% of the permitted motor-drive level.
+The motor driver then converts the MCU's low-power control signal into the electrical current required by the actuator.
+
+**Close-loop actuator control**
+
+This is where the toothbrush becomes more interesting as an AI agent. Suppose the pressure sensor detects excessive pressure:
+$$ P > P_{\max} $$
+The AI agent could generate less $u_m$,
+The motor controller reduces the actuator intensity. Then the pressure sensor measures the new condition:
+$P_{\text{new}}$ and the cycle continues:
+<center>
+Sense→AI Decision→Motor Control→Brushing→Sense Again
+</center>
+
