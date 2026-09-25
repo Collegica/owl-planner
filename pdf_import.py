@@ -264,12 +264,20 @@ TEXT_MARKERS = {'ScotiaLine': r'ScotiaLine',
 
 
 def detect_bank(name, text: str = '') -> str | None:
+    """The bank the file name names, else the bank the text names most.
+
+    Not the first one found: a chequing or savings statement names other
+    banks in its transactions (a payment to a CIBC card from an RBC account),
+    while its own bank is on every page. Two banks named equally often is not
+    guessed at."""
     low = _basename(name).lower()
     for bank in EXTRACTORS:
         if bank.lower() in low: return bank
-    for bank, marker in TEXT_MARKERS.items():
-        if re.search(marker, text): return bank
-    return None
+    counts = {bank: len(re.findall(marker, text)) for bank, marker in TEXT_MARKERS.items()}
+    best = max(counts.values(), default=0)
+    if best == 0: return None
+    top = [bank for bank, n in counts.items() if n == best]
+    return top[0] if len(top) == 1 else None
 
 
 def extract(text: str, bank: str, name='') -> dict:
