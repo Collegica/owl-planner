@@ -159,6 +159,38 @@ def test_the_bank_is_read_from_the_text_when_the_name_says_nothing():
     assert pdf_import.stmt_year('statement.pdf', layout(pages)) == 2026
 
 
+def _with_line(name, line):
+    """A fixture's pages with one invented transaction line added to page 1."""
+    pages = json.loads((FIXTURES / f'{name}.json').read_text())
+    pages[0].append(frag(line, 40, 5))
+    return pages
+
+
+def test_a_statement_is_named_by_its_own_bank_not_another_it_mentions():
+    # an RBC savings statement paying a CIBC card names CIBC once
+    pages = _with_line('rbc-2026-03-31', 'PAYMENT CIBC VISA')
+    assert pdf_import.detect_bank('statement.pdf', layout(pages)) == 'RBC'
+    # and a CIBC card statement can name RBC in a payment line. The invented
+    # fixture is one page and names CIBC once; a real one names it on every
+    # page, so give it the footer a real statement carries.
+    pages = _with_line('cibc-2026-01-31', 'PAYMENT FROM RBC')
+    pages[0].append(frag('CIBC Credit Card Services', 40, 2))
+    assert pdf_import.detect_bank('statement.pdf', layout(pages)) == 'CIBC'
+
+
+def test_the_rbc_statement_still_reconciles_with_the_mention_added():
+    pages = _with_line('rbc-2026-03-31', 'PAYMENT CIBC VISA')
+    out = pdf_import.convert('statement.pdf', pages)
+    assert out['bank'] == 'RBC' and out['reconciled'] is True
+
+
+def test_two_banks_named_equally_are_not_guessed():
+    pages = [[frag('CIBC', 40, 700), frag('RBC', 40, 680), frag('Jan 05  CORNER GROCER  45.67', 40, 660)]]
+    assert pdf_import.detect_bank('statement.pdf', layout(pages)) is None
+    out = pdf_import.convert('statement.pdf', pages)
+    assert out['bank'] is None and out['why'] == 'unknown layout' and out['csv'] == ''
+
+
 def test_fixtures_are_generated_deterministically(tmp_path):
     # the generator writes beside itself; run a copy of it in a temporary
     # folder and compare with what is committed
