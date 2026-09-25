@@ -325,9 +325,13 @@ function renderMarkdown(md) {
       const cells = (r) => r.replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
       const header = cells(rows[0]);
       const body = rows.slice(2).map(cells);
-      const num = (c) => /^[-–]?\$?[\d,]+(\.\d+)?%?$/.test(c) || c === '' && false;
-      out.push('<table><thead><tr>' + header.map((c, k) => `<th class="${k > 0 ? 'num' : ''}">${inline(c)}</th>`).join('') + '</tr></thead><tbody>'
-        + body.map((r) => '<tr>' + r.map((c, k) => `<td class="${k > 0 && (num(c) || c === '') ? 'num' : ''}">${inline(c)}</td>`).join('') + '</tr>').join('')
+      // Alignment comes from the table's own separator row (`---:` is a
+      // right-aligned figure column), not from what a cell looks like: a
+      // total is written **2,188**, which no number pattern matches, and
+      // guessing left every total out of line with the figures above it.
+      const cls = cells(rows[1] || '').map((c) => (/-:$/.test(c) ? 'num' : ''));
+      out.push('<table><thead><tr>' + header.map((c, k) => `<th class="${cls[k] || ''}">${inline(c)}</th>`).join('') + '</tr></thead><tbody>'
+        + body.map((r) => '<tr>' + r.map((c, k) => `<td class="${cls[k] || ''}">${inline(c)}</td>`).join('') + '</tr>').join('')
         + '</tbody></table>');
       continue;
     }
