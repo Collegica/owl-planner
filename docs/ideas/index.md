@@ -2,7 +2,7 @@
 
 *Generated from the headers in this folder. Do not edit; edit the idea.*
 
-30 ideas: 19 seed, 1 explored, 8 promoted, 2 retired.
+31 ideas: 20 seed, 1 explored, 8 promoted, 2 retired.
 
 ## In order
 
@@ -27,9 +27,10 @@ Open ideas (`seed`, `explored`) by value, then by effort — S is days, M weeks,
 | 15 | IDEA-0024 | [A loan you decide not to collect is written off — dated, reasoned, and moved to the budget](20260909_write-off-as-a-state.md) | medium | S | `lending-ledger` | `formal-loan-record` |
 | 16 | IDEA-0026 | [A statement per person: every leg, dated, with a running balance](20260909_per-counterparty-statement.md) | medium | S | `lending-ledger` | `iou-trackers` |
 | 17 | IDEA-0028 | [Expected repayments are dated inflows in the plan, not just an outstanding balance](20260909_receivables-in-the-plan.md) | medium | S | `planning` | `formal-loan-record` |
-| 18 | IDEA-0013 | [A monthly net-worth line, for free, from the closing balances every statement already carries](20260909_net-worth-from-closing-balances.md) | medium | M | `planning` | `canadian-planners` |
-| 19 | IDEA-0012 | [Two people, one budget: transfers between partners are a third kind of movement](20260909_household-mode.md) | medium | L | `household` | `canadian-planners` |
-| 20 | IDEA-0027 | [An optional `rate:` on a loan, and the one date that matters for a family investment loan](20260909_rate-and-the-30-january-line.md) | low | S | `lending-ledger` | `iou-trackers` |
+| 18 | IDEA-0033 | [A levelled payment that clears just after the window is dropped, understating the rate](20260925_levelled-payment-after-the-window.md) | medium | S | `recurring-baseline` | `review` |
+| 19 | IDEA-0013 | [A monthly net-worth line, for free, from the closing balances every statement already carries](20260909_net-worth-from-closing-balances.md) | medium | M | `planning` | `canadian-planners` |
+| 20 | IDEA-0012 | [Two people, one budget: transfers between partners are a third kind of movement](20260909_household-mode.md) | medium | L | `household` | `canadian-planners` |
+| 21 | IDEA-0027 | [An optional `rate:` on a loan, and the one date that matters for a family investment loan](20260909_rate-and-the-30-january-line.md) | low | S | `lending-ledger` | `iou-trackers` |
 
 ## Statement import (`statement-import`) — 4
 
@@ -54,11 +55,12 @@ Open ideas (`seed`, `explored`) by value, then by effort — S is days, M weeks,
 | IDEA-0004 | [A pin that matches no transaction is reported, not silently ignored](20260909_pins-that-match-nothing.md) | `incident` | medium | S | seed |  |
 | IDEA-0016 | [Golden tests for the classification order, on an invented CSV](20260909_golden-tests-for-precedence.md) | `canadian-planners` | high | M | promoted | `openspec/changes/trust-the-number` |
 
-## Recurring baseline (`recurring-baseline`) — 1
+## Recurring baseline (`recurring-baseline`) — 2
 
 | id | idea | lens | value | effort | status | went to |
 |---|---|---|---|---|---|---|
 | IDEA-0003 | [Notice a month-end payment that wobbles across the boundary, and suggest `level`](20260909_detect-month-boundary-wobble.md) | `data` | medium | S | seed |  |
+| IDEA-0033 | [A levelled payment that clears just after the window is dropped, understating the rate](20260925_levelled-payment-after-the-window.md) | `review` | medium | S | seed |  |
 
 ## Lending ledger (`lending-ledger`) — 7
 
