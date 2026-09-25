@@ -492,7 +492,8 @@ def main(argv=None):
     if uncategorised:
         u = sum(t[2] for t in uncategorised)
         lines += ["## Uncategorised", "",
-                  f"| Not yet matched | {u:,.0f} | {u/months:,.0f} |", "|---|---:|---:|", ""]
+                  "| Line | In window | Per month |", "|---|---:|---:|",
+                  f"| Not yet matched | {u:,.0f} | {u/months:,.0f} |", ""]
     lines += ["## Result", "",
               f"| | In window | Per month |", "|---|---:|---:|",
               f"| **Total expenses** | **{spend:,.0f}** | **{spend/months:,.0f}** |"]
